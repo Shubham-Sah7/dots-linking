@@ -32,41 +32,83 @@ export function CanvasBottomControls({
 }: CanvasBottomControlsProps) {
   return (
     <div className="absolute bottom-4 inset-x-6 z-20 flex flex-wrap items-center justify-between pointer-events-none font-sans select-none gap-2">
-      {/* Left Legend: Real Visual Grammar */}
-      <div className="pointer-events-auto bg-[#141413]/90 backdrop-blur-md px-3.5 py-1.5 border border-white/[0.09] rounded-xl text-xs text-white/70 flex flex-wrap items-center gap-4 shadow-lg">
-        {/* Node size = importance */}
-        <div className="flex items-center gap-1.5">
-          <span className="flex items-center gap-1">
-            <span className="size-1.5 rounded-full bg-[#f26522]" />
-            <span className="size-2.5 rounded-full bg-[#f26522]" />
+      {/* Left Legend: Supermemory Graph Legend & Visual Grammar */}
+      <div className="pointer-events-auto bg-[#141413]/92 backdrop-blur-md px-3.5 py-1.5 border border-white/[0.09] rounded-xl text-xs text-white/70 flex flex-wrap items-center gap-3.5 shadow-lg">
+        {/* Relationship Types (Supermemory Triad) */}
+        <div className="flex items-center gap-3">
+          <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-white/40">
+            Edges:
           </span>
-          <span className="text-[11px]">Size = Importance (1-5)</span>
+
+          {/* Updates */}
+          <div
+            className="flex items-center gap-1.5 cursor-help"
+            title="Updates: Replaces older fact as current truth while preserving history"
+          >
+            <span className="w-3.5 h-[2px] border-b-2 border-dashed border-[#d97706]" />
+            <span className="text-[11px] text-[#fbbf24] font-medium">Updates</span>
+          </div>
+
+          {/* Extends */}
+          <div
+            className="flex items-center gap-1.5 cursor-help"
+            title="Extends: Adds context without invalidating the existing memory"
+          >
+            <span className="w-3.5 h-[2px] bg-[#f26522]" />
+            <span className="text-[11px] text-[#ff8a4c] font-medium">Extends</span>
+          </div>
+
+          {/* Derives */}
+          <div
+            className="flex items-center gap-1.5 cursor-help"
+            title="Derives: A memory is inferred from multiple existing memories"
+          >
+            <span className="w-3.5 h-[2px] border-b-2 border-dotted border-[#38bdf8]" />
+            <span className="text-[11px] text-[#38bdf8] font-medium">Derives</span>
+          </div>
         </div>
 
-        {/* Active vs Superseded vs Selected */}
-        <div className="flex items-center gap-1.5">
-          <span className="size-2 rounded-full bg-white ring-1 ring-white/40" />
-          <span className="text-[11px]">Active</span>
-        </div>
+        <div className="w-[1px] h-3.5 bg-white/[0.1] hidden sm:block" />
 
-        <div className="flex items-center gap-1.5">
-          <span className="size-2.5 rounded-full border border-dashed border-white/40 bg-[#d97706]/30" />
-          <span className="text-[11px]">Superseded</span>
-        </div>
+        {/* Truth States */}
+        <div className="flex items-center gap-3">
+          <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-white/40">
+            Truth:
+          </span>
 
-        <div className="flex items-center gap-1.5">
-          <span className="size-2.5 rounded-full border-2 border-[#f26522] bg-[#f26522]" />
-          <span className="text-[11px] text-[#f26522]">Selected</span>
+          <div
+            className="flex items-center gap-1.5 cursor-help"
+            title="Current Truth: Active canonical fact"
+          >
+            <span className="size-2 rounded-full bg-white ring-1 ring-white/50" />
+            <span className="text-[11px] text-white/80">Current Truth</span>
+          </div>
+
+          <div
+            className="flex items-center gap-1.5 cursor-help"
+            title="Historical: Superseded fact with history preserved"
+          >
+            <span className="size-2 rounded-full border border-dashed border-[#d97706] bg-[#d97706]/40" />
+            <span className="text-[11px] text-[#fbbf24]/80">Historical</span>
+          </div>
+
+          <div
+            className="flex items-center gap-1.5 cursor-help"
+            title="Inferred: Probabilistic deduction from source memories"
+          >
+            <span className="size-2 rounded-full border border-dotted border-[#38bdf8] bg-[#38bdf8]/40" />
+            <span className="text-[11px] text-[#38bdf8]/80">Inferred</span>
+          </div>
         </div>
 
         {/* Scope Boundaries */}
-        <div className="flex items-center gap-1.5 border-l border-white/[0.08] pl-3">
+        <div className="flex items-center gap-1.5 border-l border-white/[0.08] pl-3 hidden md:flex">
           <span className="w-3 h-2 rounded border border-white/20 bg-white/5" />
           <span className="text-[11px]">Scope Boundaries</span>
         </div>
 
         {/* Dotted Scope Silhouette */}
-        <div className="flex items-center gap-1.5 border-l border-white/[0.08] pl-3">
+        <div className="flex items-center gap-1.5 border-l border-white/[0.08] pl-3 hidden lg:flex">
           <span className="flex items-center gap-0.5">
             <span className="size-1 rounded-full bg-white/60" />
             <span className="size-1 rounded-full bg-[#f26522]" />

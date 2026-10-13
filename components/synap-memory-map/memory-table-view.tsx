@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { ClientScopeData, MemoryItem } from './types';
 import { Search, AlertCircle, ArrowUpRight } from 'lucide-react';
-import { getAllMemories, CATEGORY_COLORS } from './mock-data';
+import { getAllMemories, CATEGORY_COLORS, getTruthState } from './mock-data';
 
 interface MemoryTableViewProps {
   data: ClientScopeData;
@@ -81,10 +81,11 @@ export function MemoryTableView({ data, onSelectMemory }: MemoryTableViewProps) 
             <tr>
               <th className="py-3 px-4 font-semibold">Memory ID</th>
               <th className="py-3 px-4 font-semibold">Title</th>
+              <th className="py-3 px-4 font-semibold">Type</th>
               <th className="py-3 px-4 font-semibold">Home Scope & Owner</th>
               <th className="py-3 px-4 font-semibold">Customer Enclave</th>
               <th className="py-3 px-4 font-semibold">Category</th>
-              <th className="py-3 px-4 font-semibold">Status</th>
+              <th className="py-3 px-4 font-semibold">Truth State</th>
               <th className="py-3 px-4 font-semibold">Confidence</th>
               <th className="py-3 px-4 font-semibold">Actions</th>
             </tr>
@@ -92,6 +93,7 @@ export function MemoryTableView({ data, onSelectMemory }: MemoryTableViewProps) 
           <tbody className="divide-y divide-white/[0.05] bg-[#141413]">
             {filteredMemories.map((mem) => {
               const catColor = CATEGORY_COLORS[mem.category]?.color || '#f26522';
+              const truthState = getTruthState(mem);
               return (
                 <tr
                   key={mem.id}
@@ -100,6 +102,11 @@ export function MemoryTableView({ data, onSelectMemory }: MemoryTableViewProps) 
                 >
                   <td className="py-3 px-4 text-[#f26522] font-mono font-bold">{mem.id}</td>
                   <td className="py-3 px-4 text-white font-medium max-w-xs truncate">{mem.title}</td>
+                  <td className="py-3 px-4 font-mono text-[11px] text-white/80">
+                    <span className="px-1.5 py-0.5 rounded bg-white/[0.05] border border-white/[0.08]">
+                      {mem.memoryType || 'Fact'}
+                    </span>
+                  </td>
                   <td className="py-3 px-4 text-white/90">
                     <span className="font-mono text-[11px] px-1.5 py-0.5 rounded bg-white/[0.04] text-white/70">
                       {mem.ownerName}
@@ -115,12 +122,14 @@ export function MemoryTableView({ data, onSelectMemory }: MemoryTableViewProps) 
                   <td className="py-3 px-4">
                     <span
                       className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase font-mono border ${
-                        mem.status === 'Superseded'
+                        truthState === 'Historical'
                           ? 'bg-[#d97706]/15 text-[#fbbf24] border-[#d97706]/30'
-                          : 'bg-white/10 text-white border-white/20'
+                          : truthState === 'Inferred'
+                          ? 'bg-[#38bdf8]/15 text-[#38bdf8] border-[#38bdf8]/30'
+                          : 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
                       }`}
                     >
-                      {mem.status}
+                      {truthState}
                     </span>
                   </td>
                   <td className="py-3 px-4 text-white/50 font-mono">{(mem.confidence * 100).toFixed(0)}%</td>

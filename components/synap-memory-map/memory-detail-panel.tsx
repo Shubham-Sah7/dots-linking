@@ -12,9 +12,14 @@ import {
   CheckCircle2,
   AlertTriangle,
   Compass,
-  CornerDownRight,
   Sparkles,
   Layers,
+  Sliders,
+  Calendar,
+  History,
+  GitBranch,
+  Server,
+  ShieldCheck,
 } from 'lucide-react';
 import {
   MemoryItem,
@@ -27,6 +32,7 @@ import {
   RELATIONSHIP_METRICS,
   findMemoryById,
   getAllMemories,
+  getTruthState,
 } from './mock-data';
 
 interface MemoryDetailPanelProps {
@@ -281,9 +287,11 @@ export function MemoryDetailPanel({
   }
 
   // =========================================================================
-  // When a MEMORY IS SELECTED: Full Contextual Memory Inspector
+  // When a MEMORY IS SELECTED: Full Contextual Supermemory Inspector
   // =========================================================================
-  const isSuperseded = memory.status === 'Superseded';
+  const truthState = getTruthState(memory);
+  const isSuperseded = truthState === 'Historical';
+  const isInferred = truthState === 'Inferred';
   const categoryInfo = CATEGORY_COLORS[memory.category];
 
   // Find incoming relationships pointing TO this memory
@@ -297,33 +305,74 @@ export function MemoryDetailPanel({
   );
 
   return (
-    <aside className="w-80 lg:w-[375px] border-l border-white/[0.08] bg-[#141413]/98 backdrop-blur-2xl p-4 sm:p-5 flex flex-col justify-between text-white font-sans shrink-0 overflow-y-auto z-10 animate-in slide-in-from-right duration-150 select-none">
+    <aside className="w-80 lg:w-[385px] border-l border-white/[0.08] bg-[#141413]/98 backdrop-blur-2xl p-4 sm:p-5 flex flex-col justify-between text-white font-sans shrink-0 overflow-y-auto z-10 animate-in slide-in-from-right duration-150 select-none">
       <div className="space-y-4">
-        {/* Top Header: ID, Status Badge, Importance Rating, Center Camera, Close */}
+        {/* Top Header: ID, Truth State Badge, Memory Type, Center Camera, Close */}
         <div className="flex items-center justify-between pb-3 border-b border-white/[0.08]">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <span
               className={`w-2.5 h-2.5 rounded-full ${
                 isSuperseded
                   ? 'bg-[#d97706] ring-2 ring-[#d97706]/30'
+                  : isInferred
+                  ? 'bg-[#38bdf8] ring-2 ring-[#38bdf8]/30'
                   : 'bg-white ring-2 ring-white/30'
               }`}
             />
             <span className="text-xs font-mono font-bold text-white tracking-wider">
               {memory.id}
             </span>
+
+            {/* Truth State Badge */}
             <span
-              className={`text-[10px] font-mono px-2 py-0.5 rounded-full uppercase tracking-wider font-semibold ${
+              className={`text-[9.5px] font-mono px-2 py-0.5 rounded-full uppercase tracking-wider font-semibold flex items-center gap-1 ${
                 isSuperseded
                   ? 'bg-[#d97706]/15 text-[#fbbf24] border border-[#d97706]/30'
-                  : 'bg-white/10 text-white border border-white/20'
+                  : isInferred
+                  ? 'bg-[#38bdf8]/15 text-[#38bdf8] border border-[#38bdf8]/30'
+                  : 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30'
               }`}
             >
-              {memory.status}
+              {isSuperseded ? (
+                <>
+                  <History size={10} />
+                  Historical
+                </>
+              ) : isInferred ? (
+                <>
+                  <Sparkles size={10} />
+                  Inferred
+                </>
+              ) : (
+                <>
+                  <CheckCircle2 size={10} />
+                  Current Truth
+                </>
+              )}
+            </span>
+
+            {/* Memory Type Badge (Fact, Preference, Episode) */}
+            <span className="text-[9.5px] font-mono px-2 py-0.5 rounded-full uppercase tracking-wider font-semibold bg-white/[0.06] text-white/80 border border-white/[0.1] flex items-center gap-1">
+              {memory.memoryType === 'Preference' ? (
+                <>
+                  <Sliders size={10} className="text-[#f26522]" />
+                  Preference
+                </>
+              ) : memory.memoryType === 'Episode' ? (
+                <>
+                  <Calendar size={10} className="text-amber-400" />
+                  Episode
+                </>
+              ) : (
+                <>
+                  <ShieldCheck size={10} className="text-sky-400" />
+                  Fact
+                </>
+              )}
             </span>
           </div>
 
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1 shrink-0">
             <button
               onClick={() => onFocusMemory(memory)}
               title="Center canvas camera on this memory"
@@ -341,7 +390,58 @@ export function MemoryDetailPanel({
           </div>
         </div>
 
-        {/* Scope Ownership Hierarchy Card: Directly answers "Who owns this memory?" */}
+        {/* Truth State & Lineage Explanation Banner */}
+        {isSuperseded ? (
+          <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/25 flex items-start gap-2.5 text-xs text-amber-200">
+            <AlertTriangle size={15} className="text-amber-400 shrink-0 mt-0.5" />
+            <div className="space-y-1">
+              <p className="font-semibold text-amber-300">Superseded Historical Fact</p>
+              <p className="text-[11px] text-amber-200/80 leading-relaxed">
+                This memory represents historical context that has been updated by newer data
+                {memory.supersededBy && (
+                  <>
+                    {' '}
+                    <button
+                      onClick={() => {
+                        const target = findMemoryById(memory.supersededBy!, data);
+                        if (target) {
+                          onSelectMemory(target);
+                          onFocusMemory(target);
+                        }
+                      }}
+                      className="font-mono underline text-amber-100 hover:text-white font-bold"
+                    >
+                      [{memory.supersededBy}]
+                    </button>
+                  </>
+                )}
+                . History and audit trail are safely preserved.
+              </p>
+            </div>
+          </div>
+        ) : isInferred ? (
+          <div className="p-3 rounded-xl bg-sky-500/10 border border-sky-500/25 flex items-start gap-2.5 text-xs text-sky-200">
+            <Sparkles size={15} className="text-sky-400 shrink-0 mt-0.5" />
+            <div className="space-y-1">
+              <p className="font-semibold text-sky-300">Inferred Memory Derivation</p>
+              <p className="text-[11px] text-sky-200/80 leading-relaxed">
+                Inferred across multiple premise memories with {Math.round(memory.confidence * 100)}% probabilistic confidence.
+              </p>
+            </div>
+          </div>
+        ) : (
+          <div className="p-2.5 rounded-xl bg-emerald-500/[0.08] border border-emerald-500/20 flex items-center justify-between text-xs text-emerald-200">
+            <div className="flex items-center gap-2">
+              <CheckCircle2 size={13} className="text-emerald-400 shrink-0" />
+              <span className="text-[11px] text-emerald-200/90 font-medium">
+                Canonical Current Truth · Active in scope
+              </span>
+            </div>
+            <span className="text-[10px] font-mono text-emerald-400 font-semibold">LATEST</span>
+          </div>
+        )}
+
+        {/* Scope Ownership Hierarchy Card */}
         <div className="rounded-xl bg-[#181816] border border-white/[0.08] p-3.5 space-y-2.5 shadow-md">
           <div className="flex items-center justify-between">
             <span className="text-[10px] font-mono uppercase tracking-widest text-[#f26522] font-semibold flex items-center gap-1.5">
@@ -349,7 +449,7 @@ export function MemoryDetailPanel({
               Ownership & Scope Enclave
             </span>
             <span className="text-[10px] font-mono text-white/40 uppercase">
-              {memory.scopeType} level
+              {memory.scopeType} scope
             </span>
           </div>
 
@@ -367,7 +467,7 @@ export function MemoryDetailPanel({
 
             {/* Scope Breadcrumb Path */}
             <div className="flex flex-wrap items-center gap-1 text-[11px] font-mono text-white/60 pt-1">
-              <span className="text-white/40">Scope path:</span>
+              <span className="text-white/40">Hierarchy:</span>
               <span className="text-white/80">{memory.clientName}</span>
               <span className="text-white/30">/</span>
               <span className="text-[#ff8a4c]">{memory.customerName}</span>
@@ -451,39 +551,16 @@ export function MemoryDetailPanel({
           </div>
         </div>
 
-        {/* Superseded Warning Banner if applicable */}
-        {isSuperseded && memory.supersededBy && (
-          <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-start gap-2.5 text-xs text-amber-200">
-            <AlertTriangle size={15} className="text-amber-400 shrink-0 mt-0.5" />
-            <div className="space-y-1">
-              <p className="font-semibold text-amber-300">Superseded Memory</p>
-              <p className="text-[11px] text-amber-200/80 leading-relaxed">
-                This fact has been superseded by newer data revision{' '}
-                <button
-                  onClick={() => {
-                    const target = findMemoryById(memory.supersededBy!, data);
-                    if (target) {
-                      onSelectMemory(target);
-                      onFocusMemory(target);
-                    }
-                  }}
-                  className="font-mono underline text-amber-100 hover:text-white"
-                >
-                  {memory.supersededBy}
-                </button>
-                .
-              </p>
-            </div>
-          </div>
-        )}
-
-        {/* Connected Relationships: Answers "What is it connected to?" */}
+        {/* Connected Memories (Supermemory Triad: Updates, Extends, Derives) */}
         <div className="space-y-2.5 pt-1">
           <div className="flex items-center justify-between">
             <h3 className="text-xs font-mono font-bold uppercase tracking-wider text-white/80 flex items-center gap-1.5">
-              <CornerDownRight size={13} className="text-[#f26522]" />
-              Connected Memories ({memory.relationships.length + incomingRelationships.length})
+              <GitBranch size={13} className="text-[#f26522]" />
+              Relationships ({memory.relationships.length + incomingRelationships.length})
             </h3>
+            <span className="text-[10px] font-mono text-white/40">
+              Supermemory Paradigm
+            </span>
           </div>
 
           {memory.relationships.length === 0 && incomingRelationships.length === 0 ? (
@@ -491,13 +568,15 @@ export function MemoryDetailPanel({
               No direct graph edges connected to this atomic memory.
             </div>
           ) : (
-            <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+            <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
               {/* Outgoing relationships */}
               {memory.relationships.map((rel) => {
                 const targetMem = findMemoryById(rel.targetMemoryId, data);
                 const relInfo = RELATIONSHIP_METRICS[rel.type] || {
                   label: rel.type,
                   color: '#f26522',
+                  borderStyle: 'solid',
+                  description: '',
                 };
 
                 return (
@@ -513,12 +592,19 @@ export function MemoryDetailPanel({
                   >
                     <div className="flex items-center justify-between text-[11px]">
                       <span
-                        className="px-2 py-0.5 rounded font-mono font-semibold text-[9px] uppercase tracking-wider"
+                        className="px-2 py-0.5 rounded font-mono font-bold text-[9px] uppercase tracking-wider flex items-center gap-1"
                         style={{
                           backgroundColor: `${relInfo.color}22`,
                           color: relInfo.color,
                         }}
                       >
+                        {rel.type === 'updates' ? (
+                          <span className="w-2 h-[2px] border-b-2 border-dashed border-[#d97706]" />
+                        ) : rel.type === 'derives' ? (
+                          <span className="w-2 h-[2px] border-b-2 border-dotted border-[#38bdf8]" />
+                        ) : (
+                          <span className="w-2 h-[2px] bg-[#f26522]" />
+                        )}
                         {relInfo.label}
                       </span>
                       <span className="text-[10px] font-mono text-white/40 group-hover:text-[#f26522] flex items-center gap-1">
@@ -542,6 +628,8 @@ export function MemoryDetailPanel({
                 const relInfo = RELATIONSHIP_METRICS[rel.type] || {
                   label: rel.type,
                   color: '#f26522',
+                  borderStyle: 'solid',
+                  description: '',
                 };
 
                 return (
@@ -555,7 +643,7 @@ export function MemoryDetailPanel({
                   >
                     <div className="flex items-center justify-between text-[11px]">
                       <span
-                        className="px-2 py-0.5 rounded font-mono font-semibold text-[9px] uppercase tracking-wider"
+                        className="px-2 py-0.5 rounded font-mono font-bold text-[9px] uppercase tracking-wider flex items-center gap-1"
                         style={{
                           backgroundColor: `${relInfo.color}22`,
                           color: relInfo.color,
@@ -580,6 +668,17 @@ export function MemoryDetailPanel({
               })}
             </div>
           )}
+        </div>
+
+        {/* Synap Backend Telemetry & Capability Notice */}
+        <div className="rounded-xl bg-white/[0.02] border border-white/[0.06] p-3 space-y-1.5 text-[11px] font-mono">
+          <div className="flex items-center gap-1.5 text-white/60 font-semibold text-[10px] uppercase tracking-wider">
+            <Server size={11} className="text-[#f26522]" />
+            <span>Backend Sync Status</span>
+          </div>
+          <div className="text-white/50 text-[10.5px] leading-relaxed">
+            <span className="text-emerald-400 font-bold">Synap Core API:</span> Scopes, memories, and updates/extends edges are persisted server-side. Multi-memory derivations are computed by Graph-Memory v2.
+          </div>
         </div>
       </div>
 

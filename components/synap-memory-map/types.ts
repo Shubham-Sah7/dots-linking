@@ -14,7 +14,14 @@ export type EntityCategory =
 
 export type MemoryStatus = 'Active' | 'Superseded' | 'Confirmed' | 'Inferred';
 
+export type MemoryType = 'Fact' | 'Preference' | 'Episode';
+
+export type TruthState = 'Current Truth' | 'Historical' | 'Inferred';
+
 export type RelationshipType =
+  | 'updates'
+  | 'extends'
+  | 'derives'
   | 'references'
   | 'supersedes'
   | 'informs'
@@ -34,6 +41,8 @@ export interface MemoryItem {
   title: string;
   text: string;
   status: MemoryStatus;
+  memoryType: MemoryType;
+  truthState?: TruthState;
   importance: number; // 1..5 for subtle size scaling
   scopeId: string;
   scopeType: ScopeType;

@@ -14,6 +14,7 @@ import {
   getAllMemories,
   getAllRelationships,
   findMemoryById,
+  getTruthState,
 } from './mock-data';
 import { evaluateReferenceSilhouette } from './dotted-pattern/reference-data';
 
@@ -613,15 +614,21 @@ export function MemoryMapCanvas({
         )
           return;
 
+        const hoveredMem = hoveredMemoryRef.current;
         const isIncident =
           selectedMemory &&
           (rel.sourceMemoryId === selectedMemory.id || rel.targetMemoryId === selectedMemory.id);
-        const isDimmed = selectedMemory && !isIncident;
+        const isHoverIncident =
+          hoveredMem &&
+          (rel.sourceMemoryId === hoveredMem.id || rel.targetMemoryId === hoveredMem.id);
+        const isHighlighted = isIncident || isHoverIncident;
+        const isDimmed = (selectedMemory && !isIncident) || (hoveredMem && !isHoverIncident && !isIncident);
 
         const relInfo = RELATIONSHIP_METRICS[rel.type] || {
           label: rel.type,
           color: '#f26522',
           borderStyle: 'solid',
+          description: '',
         };
 
         const sPos = getNodeWorldPos(sourceMem, time);
@@ -667,48 +674,68 @@ export function MemoryMapCanvas({
         ctx.moveTo(sx, sy);
         ctx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, tx, ty);
 
-        if (isIncident) {
-          // Highlighted active edge in Maximem Orange
-          ctx.strokeStyle = '#f26522';
-          ctx.lineWidth = 2.2;
+        if (isHighlighted) {
+          // Highlighted active/hovered edge using Supermemory relationship color
+          ctx.strokeStyle = relInfo.color;
+          ctx.lineWidth = 2.4;
+          if (relInfo.borderStyle === 'dashed') {
+            ctx.setLineDash([5, 4]);
+          } else if (relInfo.borderStyle === 'dotted') {
+            ctx.setLineDash([2, 4]);
+          } else {
+            ctx.setLineDash([]);
+          }
           ctx.stroke();
 
           // Animated energy data pulse traveling along the curve
-          ctx.strokeStyle = 'rgba(255, 255, 255, 0.75)';
-          ctx.lineWidth = 1.4;
+          ctx.strokeStyle = 'rgba(255, 255, 255, 0.85)';
+          ctx.lineWidth = 1.6;
           ctx.setLineDash([4, 10]);
-          ctx.lineDashOffset = -time * 26;
+          ctx.lineDashOffset = -time * 28;
           ctx.stroke();
           ctx.setLineDash([]);
 
-          // Relationship Type Label Badge at curve midpoint
+          // Supermemory Relationship Badge Pill at curve midpoint
           ctx.font = 'bold 8.5px "Geist Mono", var(--font-mono), monospace';
           const labelText = relInfo.label.toUpperCase();
           const textMetrics = ctx.measureText(labelText);
-          const pillW = textMetrics.width + 10;
-          const pillH = 15;
+          const pillW = textMetrics.width + 12;
+          const pillH = 16;
 
           // Pill Background
           drawRoundedRect(ctx, midX - pillW / 2, midY - pillH / 2 - 2, pillW, pillH, 4);
           ctx.fillStyle = '#181816';
           ctx.fill();
-          ctx.strokeStyle = '#f26522';
-          ctx.lineWidth = 1;
+          ctx.strokeStyle = relInfo.color;
+          ctx.lineWidth = 1.2;
           ctx.stroke();
 
           // Pill Text
           ctx.fillStyle = '#ffffff';
           ctx.textAlign = 'center';
-          ctx.fillText(labelText, midX, midY + 2);
+          ctx.fillText(labelText, midX, midY + 2.5);
           ctx.textAlign = 'left';
         } else {
           // Progressive zoom disclosure for inactive edges (clean overview, details on zoom)
           const zoomFactor = Math.min(Math.max((cam.zoom - 0.7) / 0.5, 0), 1);
-          const edgeAlpha = isDimmed ? 0.025 : 0.06 + zoomFactor * 0.14;
-          ctx.strokeStyle = `rgba(255, 255, 255, ${edgeAlpha})`;
+          const edgeAlpha = isDimmed ? 0.02 : 0.07 + zoomFactor * 0.16;
+
+          // Subtle distinct tint based on Supermemory relationship type
+          if (rel.type === 'updates') {
+            ctx.strokeStyle = `rgba(217, 119, 6, ${edgeAlpha * 1.5})`;
+          } else if (rel.type === 'derives') {
+            ctx.strokeStyle = `rgba(56, 189, 248, ${edgeAlpha * 1.5})`;
+          } else {
+            ctx.strokeStyle = `rgba(255, 255, 255, ${edgeAlpha})`;
+          }
+
           ctx.lineWidth = 1.2;
           if (relInfo.borderStyle === 'dashed') {
-            ctx.setLineDash([3, 4]);
+            ctx.setLineDash([4, 4]);
+          } else if (relInfo.borderStyle === 'dotted') {
+            ctx.setLineDash([2, 4]);
+          } else {
+            ctx.setLineDash([]);
           }
           ctx.stroke();
           ctx.setLineDash([]);
@@ -724,9 +751,11 @@ export function MemoryMapCanvas({
           const arrowX = tx - (arrowDx / arrowLen) * (targetRadius + 2);
           const arrowY = ty - (arrowDy / arrowLen) * (targetRadius + 2);
           const angle = Math.atan2(arrowDy, arrowDx);
-          const arrowSize = isIncident ? 6 : 4;
+          const arrowSize = isHighlighted ? 6.5 : 4;
 
-          ctx.fillStyle = isIncident ? '#f26522' : `rgba(255, 255, 255, ${isDimmed ? 0.04 : 0.25})`;
+          ctx.fillStyle = isHighlighted
+            ? relInfo.color
+            : `rgba(255, 255, 255, ${isDimmed ? 0.03 : 0.22})`;
           ctx.beginPath();
           ctx.moveTo(arrowX, arrowY);
           ctx.lineTo(
@@ -760,7 +789,9 @@ export function MemoryMapCanvas({
         const isDimmed = selectedMemory && !isConnected && !isSelected;
 
         const catInfo = CATEGORY_COLORS[mem.category] || { color: '#a1a1aa' };
-        const isSuperseded = mem.status === 'Superseded';
+        const truthState = getTruthState(mem);
+        const isSuperseded = truthState === 'Historical';
+        const isInferred = truthState === 'Inferred';
 
         // Dynamic harmonic floating position for breathing constellation effect
         const pos = getNodeWorldPos(mem, time);
@@ -808,22 +839,37 @@ export function MemoryMapCanvas({
           ctx.fillStyle = '#ffffff';
           ctx.fill();
         } else if (isSuperseded) {
-          // Superseded: Dark body with dashed grey border & muted core
+          // Historical / Superseded: Dark body with dashed amber border & warm amber core
           ctx.fillStyle = '#1c1c1a';
           ctx.fill();
           ctx.setLineDash([3, 2]);
-          ctx.strokeStyle = isHovered ? '#ffffff' : 'rgba(255, 255, 255, 0.28)';
+          ctx.strokeStyle = isHovered ? '#ffffff' : 'rgba(217, 119, 6, 0.7)';
           ctx.lineWidth = 1.5;
           ctx.stroke();
           ctx.setLineDash([]);
 
-          // Center muted core
+          // Center amber core
           ctx.beginPath();
           ctx.arc(pos.x, pos.y, 3, 0, Math.PI * 2);
           ctx.fillStyle = '#d97706';
           ctx.fill();
+        } else if (isInferred) {
+          // Inferred memory: Dark body with dotted cyan border & glowing sky core
+          ctx.fillStyle = '#151b1e';
+          ctx.fill();
+          ctx.setLineDash([2, 3]);
+          ctx.strokeStyle = isHovered ? '#ffffff' : 'rgba(56, 189, 248, 0.75)';
+          ctx.lineWidth = 1.5;
+          ctx.stroke();
+          ctx.setLineDash([]);
+
+          // Center cyan core
+          ctx.beginPath();
+          ctx.arc(pos.x, pos.y, 3, 0, Math.PI * 2);
+          ctx.fillStyle = '#38bdf8';
+          ctx.fill();
         } else {
-          // Active node: Solid dark charcoal body with crisp silver border
+          // Current Truth: Solid dark charcoal body with crisp silver border
           ctx.fillStyle = '#242422';
           ctx.fill();
           ctx.lineWidth = isHovered ? 2 : 1.5;
@@ -875,10 +921,15 @@ export function MemoryMapCanvas({
           ctx.textAlign = 'center';
           ctx.fillText(titleText, pos.x, pos.y + radius + 17);
 
-          // Subtitle ID & Owner
+          // Subtitle ID, Memory Type, Truth State & Owner
           ctx.font = 'bold 8.5px "Geist Mono", var(--font-mono), monospace';
-          ctx.fillStyle = isSuperseded ? '#d97706' : '#f26522';
-          ctx.fillText(`${mem.id} · ${mem.ownerName}`, pos.x, pos.y + radius + 27);
+          const statusColor = isSuperseded ? '#d97706' : isInferred ? '#38bdf8' : '#f26522';
+          ctx.fillStyle = statusColor;
+          ctx.fillText(
+            `${mem.id} · ${mem.memoryType || 'Fact'} · ${mem.ownerName}`,
+            pos.x,
+            pos.y + radius + 27
+          );
         } else if (shouldShowLabel && (labelFadeAlpha > 0.05 || showLandmark)) {
           const effectiveAlpha = showLandmark && !isZoomedIn ? 0.75 : labelFadeAlpha;
           ctx.save();
