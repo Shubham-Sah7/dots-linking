@@ -45,7 +45,7 @@ export function SynapMemoryView() {
       setCameraFocusTarget({
         x: customer.bounds.x + customer.bounds.width / 2,
         y: customer.bounds.y + customer.bounds.height / 2,
-        zoom: 1.15,
+        zoom: 1.22,
         t: Date.now(),
       });
     }
@@ -60,7 +60,7 @@ export function SynapMemoryView() {
         setCameraFocusTarget({
           x: user.bounds.x + user.bounds.width / 2,
           y: user.bounds.y + user.bounds.height / 2,
-          zoom: 1.4,
+          zoom: 1.52,
           t: Date.now(),
         });
       }
@@ -98,7 +98,7 @@ export function SynapMemoryView() {
         setCameraFocusTarget({
           x: memory.x,
           y: memory.y,
-          zoom: 1.35,
+          zoom: 1.65,
           t: Date.now(),
         });
       }
@@ -108,15 +108,6 @@ export function SynapMemoryView() {
   const handleFocusMemory = useCallback((memory: MemoryItem) => {
     handleSelectMemory(memory);
   }, [handleSelectMemory]);
-
-  // Zoom handlers
-  const handleZoomIn = useCallback(() => {
-    setZoomLevel((z) => Math.min(3.0, +(z + 0.2).toFixed(2)));
-  }, []);
-
-  const handleZoomOut = useCallback(() => {
-    setZoomLevel((z) => Math.max(0.35, +(z - 0.2).toFixed(2)));
-  }, []);
 
   const handleResetView = useCallback(() => {
     setActiveCustomer(null);
@@ -131,6 +122,38 @@ export function SynapMemoryView() {
       zoom: undefined, // Signals fitCameraToViewport
       t: Date.now(),
     });
+  }, []);
+
+  // Dedicated Scope Tier Transitions (Zoom-out -> Zoom-in -> Deep Memory)
+  const handleFocusScopeTier = useCallback(
+    (tier: 'overview' | 'customer' | 'user' | 'memory') => {
+      if (tier === 'overview') {
+        handleResetView();
+      } else if (tier === 'customer') {
+        const targetCust = activeCustomer || SYNAP_CLIENT_DATA.customers[0];
+        handleSelectCustomer(targetCust);
+      } else if (tier === 'user') {
+        const targetCust = activeCustomer || SYNAP_CLIENT_DATA.customers[0];
+        const targetUsr = activeUser || targetCust.users[0];
+        setActiveCustomer(targetCust);
+        handleSelectUser(targetUsr);
+      } else if (tier === 'memory') {
+        const targetMem =
+          selectedMemory ||
+          SYNAP_CLIENT_DATA.customers[0].users[0].memories[0];
+        handleSelectMemory(targetMem);
+      }
+    },
+    [activeCustomer, activeUser, selectedMemory, handleResetView, handleSelectCustomer, handleSelectUser, handleSelectMemory]
+  );
+
+  // Zoom handlers
+  const handleZoomIn = useCallback(() => {
+    setZoomLevel((z) => Math.min(3.0, +(z + 0.2).toFixed(2)));
+  }, []);
+
+  const handleZoomOut = useCallback(() => {
+    setZoomLevel((z) => Math.max(0.35, +(z - 0.2).toFixed(2)));
   }, []);
 
   const handleToggleDetailPanel = useCallback(() => {
@@ -203,6 +226,7 @@ export function SynapMemoryView() {
                 setPatternMode((prev) => (prev === 'reference' ? 'integrated' : 'reference'))
               }
               onOpenPatternModal={() => setIsPatternModalOpen(true)}
+              onFocusScopeTier={handleFocusScopeTier}
             />
           </div>
 

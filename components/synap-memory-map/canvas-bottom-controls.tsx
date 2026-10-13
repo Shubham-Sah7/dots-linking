@@ -14,6 +14,7 @@ interface CanvasBottomControlsProps {
   patternMode?: 'integrated' | 'reference';
   onTogglePatternMode?: () => void;
   onOpenPatternModal?: () => void;
+  onFocusScopeTier?: (tier: 'overview' | 'customer' | 'user' | 'memory') => void;
 }
 
 export function CanvasBottomControls({
@@ -27,6 +28,7 @@ export function CanvasBottomControls({
   patternMode = 'integrated',
   onTogglePatternMode,
   onOpenPatternModal,
+  onFocusScopeTier,
 }: CanvasBottomControlsProps) {
   return (
     <div className="absolute bottom-4 inset-x-6 z-20 flex flex-wrap items-center justify-between pointer-events-none font-sans select-none gap-2">
@@ -118,6 +120,56 @@ export function CanvasBottomControls({
 
             <div className="w-[1px] h-3.5 bg-white/[0.12] mx-0.5" />
           </>
+        )}
+
+        {/* Interactive Scope Tier Transitions (Zoom-out -> Zoom-in -> Deep Memory) */}
+        {onFocusScopeTier && (
+          <div className="hidden lg:flex items-center rounded-lg bg-white/[0.04] p-0.5 border border-white/[0.06] text-[10px] font-mono mr-1">
+            <button
+              onClick={() => onFocusScopeTier('overview')}
+              className={`px-2 py-0.5 rounded transition-all ${
+                zoomLevel < 0.95
+                  ? 'bg-[#f26522] text-white font-bold shadow-sm'
+                  : 'text-[#a1a1aa] hover:text-white'
+              }`}
+              title="Zoom out: Full Client & Customer overview"
+            >
+              Overview
+            </button>
+            <button
+              onClick={() => onFocusScopeTier('customer')}
+              className={`px-2 py-0.5 rounded transition-all ${
+                zoomLevel >= 0.95 && zoomLevel < 1.35
+                  ? 'bg-[#f26522] text-white font-bold shadow-sm'
+                  : 'text-[#a1a1aa] hover:text-white'
+              }`}
+              title="Zoom in: Customer Scope territory"
+            >
+              Customer
+            </button>
+            <button
+              onClick={() => onFocusScopeTier('user')}
+              className={`px-2 py-0.5 rounded transition-all ${
+                zoomLevel >= 1.35 && zoomLevel < 1.6
+                  ? 'bg-[#f26522] text-white font-bold shadow-sm'
+                  : 'text-[#a1a1aa] hover:text-white'
+              }`}
+              title="Zoom in: User Enclave"
+            >
+              User
+            </button>
+            <button
+              onClick={() => onFocusScopeTier('memory')}
+              className={`px-2 py-0.5 rounded transition-all ${
+                zoomLevel >= 1.6
+                  ? 'bg-[#f26522] text-white font-bold shadow-sm'
+                  : 'text-[#a1a1aa] hover:text-white'
+              }`}
+              title="Deep Zoom: Inspect individual memory node & relationships"
+            >
+              Memory
+            </button>
+          </div>
         )}
 
         <button

@@ -76,6 +76,14 @@ export function MemoryMapCanvas({
     isAnimating: false,
   });
 
+  const timeRef = useRef(0);
+  const lastNotifiedZoomRef = useRef(0.85);
+  const onZoomChangeRef = useRef(onZoomChange);
+
+  useEffect(() => {
+    onZoomChangeRef.current = onZoomChange;
+  }, [onZoomChange]);
+
   const isDraggingRef = useRef(false);
   const hasDraggedRef = useRef(false);
   const lastMousePosRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
@@ -255,6 +263,7 @@ export function MemoryMapCanvas({
 
     const render = () => {
       time += 0.016;
+      timeRef.current = time;
       const canvas = canvasRef.current;
       if (!canvas) return;
       const ctx = canvas.getContext('2d');
@@ -264,23 +273,29 @@ export function MemoryMapCanvas({
       const width = canvas.width / dpr;
       const height = canvas.height / dpr;
 
-      // Smooth camera interpolation
+      // Smooth camera interpolation with buttery easing
       const cam = cameraRef.current;
       if (cam.isAnimating) {
-        const ease = 0.14;
+        const ease = 0.12;
         cam.x += (cam.targetX - cam.x) * ease;
         cam.y += (cam.targetY - cam.y) * ease;
         cam.zoom += (cam.targetZoom - cam.zoom) * ease;
 
         if (
-          Math.abs(cam.targetX - cam.x) < 0.4 &&
-          Math.abs(cam.targetY - cam.y) < 0.4 &&
-          Math.abs(cam.targetZoom - cam.zoom) < 0.003
+          Math.abs(cam.targetX - cam.x) < 0.25 &&
+          Math.abs(cam.targetY - cam.y) < 0.25 &&
+          Math.abs(cam.targetZoom - cam.zoom) < 0.002
         ) {
           cam.x = cam.targetX;
           cam.y = cam.targetY;
           cam.zoom = cam.targetZoom;
           cam.isAnimating = false;
+        }
+
+        // Throttle onZoomChange so parent state doesn't re-render excessively
+        if (Math.abs(lastNotifiedZoomRef.current - cam.zoom) > 0.025) {
+          lastNotifiedZoomRef.current = cam.zoom;
+          onZoomChangeRef.current(cam.zoom);
         }
       }
 
@@ -329,11 +344,12 @@ export function MemoryMapCanvas({
       // Scale dot radius inversely with camera zoom so dots maintain crisp screen size (1.8 - 2.2px)
       const effectiveDotRadius = (dotSize || 2.0) / Math.max(0.55, Math.min(cam.zoom, 1.2));
 
-      // Collect memory node positions for void exclusion (so text & icons remain 100% readable)
+      // Collect dynamic floating memory node positions for void exclusion (so text & icons remain 100% readable)
       const nodeVoids: Array<{ x: number; y: number; r: number }> = [];
       allMemories.forEach((m) => {
         if (m.x !== undefined && m.y !== undefined) {
-          nodeVoids.push({ x: m.x, y: m.y, r: 42 });
+          const pos = getNodeWorldPos(m, time);
+          nodeVoids.push({ x: pos.x, y: pos.y, r: 42 });
         }
       });
 
@@ -582,12 +598,20 @@ export function MemoryMapCanvas({
       });
 
       // =========================================================================
-      // 4. DRAW RELATIONSHIP EDGES (Real Verified Relationships)
+      // 4. DRAW RELATIONSHIP EDGES (Real Verified Relationships - Organic Cubic Bézier)
       // =========================================================================
       allRelationships.forEach((rel) => {
         const sourceMem = findMemoryById(rel.sourceMemoryId, data);
         const targetMem = findMemoryById(rel.targetMemoryId, data);
-        if (!sourceMem || !targetMem || sourceMem.x === undefined || sourceMem.y === undefined || targetMem.x === undefined || targetMem.y === undefined) return;
+        if (
+          !sourceMem ||
+          !targetMem ||
+          sourceMem.x === undefined ||
+          sourceMem.y === undefined ||
+          targetMem.x === undefined ||
+          targetMem.y === undefined
+        )
+          return;
 
         const isIncident =
           selectedMemory &&
@@ -600,31 +624,62 @@ export function MemoryMapCanvas({
           borderStyle: 'solid',
         };
 
-        ctx.save();
-        ctx.beginPath();
-
-        // Curved Bezier curve between nodes
-        const sx = sourceMem.x;
-        const sy = sourceMem.y;
-        const tx = targetMem.x;
-        const ty = targetMem.y;
+        const sPos = getNodeWorldPos(sourceMem, time);
+        const tPos = getNodeWorldPos(targetMem, time);
+        const sx = sPos.x;
+        const sy = sPos.y;
+        const tx = tPos.x;
+        const ty = tPos.y;
         const dx = tx - sx;
         const dy = ty - sy;
         const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < 1) return;
 
-        // Subtle Curvature
-        const curvature = Math.min(dist * 0.12, 45);
-        const midX = (sx + tx) / 2 - (dy / dist) * curvature;
-        const midY = (sy + ty) / 2 + (dx / dist) * curvature;
+        // Normal perpendicular vector for organic curve
+        const nx = -dy / dist;
+        const ny = dx / dist;
 
+        // Deterministic offset seed so multiple curves between nodes or scopes never overlap
+        let relSeed = 0;
+        const relKey = `${rel.sourceMemoryId}::${rel.targetMemoryId}::${rel.type}`;
+        for (let i = 0; i < relKey.length; i++) {
+          relSeed = (relSeed * 29 + relKey.charCodeAt(i)) & 0xff;
+        }
+        const seedMod = (relSeed % 5) - 2; // -2, -1, 0, 1, 2
+
+        // Curvature scales with distance and scope crossover
+        const isCrossScope = sourceMem.scopeId !== targetMem.scopeId;
+        const baseCurvature = isCrossScope ? Math.min(dist * 0.16, 52) : Math.min(dist * 0.11, 28);
+        const curvature = baseCurvature + seedMod * 6;
+
+        // Organic cubic Bézier control points
+        const cp1x = sx + dx * 0.35 + nx * curvature;
+        const cp1y = sy + dy * 0.35 + ny * curvature;
+        const cp2x = sx + dx * 0.68 + nx * (curvature * 0.86);
+        const cp2y = sy + dy * 0.68 + ny * (curvature * 0.86);
+
+        // Parametric midpoint at t = 0.5
+        const midX = 0.125 * sx + 0.375 * cp1x + 0.375 * cp2x + 0.125 * tx;
+        const midY = 0.125 * sy + 0.375 * cp1y + 0.375 * cp2y + 0.125 * ty;
+
+        ctx.save();
+        ctx.beginPath();
         ctx.moveTo(sx, sy);
-        ctx.quadraticCurveTo(midX, midY, tx, ty);
+        ctx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, tx, ty);
 
         if (isIncident) {
           // Highlighted active edge in Maximem Orange
           ctx.strokeStyle = '#f26522';
           ctx.lineWidth = 2.2;
           ctx.stroke();
+
+          // Animated energy data pulse traveling along the curve
+          ctx.strokeStyle = 'rgba(255, 255, 255, 0.75)';
+          ctx.lineWidth = 1.4;
+          ctx.setLineDash([4, 10]);
+          ctx.lineDashOffset = -time * 26;
+          ctx.stroke();
+          ctx.setLineDash([]);
 
           // Relationship Type Label Badge at curve midpoint
           ctx.font = 'bold 8.5px "Geist Mono", var(--font-mono), monospace';
@@ -647,21 +702,23 @@ export function MemoryMapCanvas({
           ctx.fillText(labelText, midX, midY + 2);
           ctx.textAlign = 'left';
         } else {
-          // Normal or dimmed edge (quiet, understated neutral grey)
-          const edgeAlpha = isDimmed ? 0.03 : 0.16;
+          // Progressive zoom disclosure for inactive edges (clean overview, details on zoom)
+          const zoomFactor = Math.min(Math.max((cam.zoom - 0.7) / 0.5, 0), 1);
+          const edgeAlpha = isDimmed ? 0.025 : 0.06 + zoomFactor * 0.14;
           ctx.strokeStyle = `rgba(255, 255, 255, ${edgeAlpha})`;
           ctx.lineWidth = 1.2;
           if (relInfo.borderStyle === 'dashed') {
-            ctx.setLineDash([3, 3]);
+            ctx.setLineDash([3, 4]);
           }
           ctx.stroke();
           ctx.setLineDash([]);
         }
 
-        // Directional Arrow Head at target node
-        const targetRadius = 8 + targetMem.importance * 1.5;
-        const arrowDx = tx - midX;
-        const arrowDy = ty - midY;
+        // Directional Arrow Head at target node along cubic tangent
+        const zoomScale = Math.min(Math.max((cam.zoom - 0.55) / 0.5, 0.68), 1.0);
+        const targetRadius = (8 + targetMem.importance * 1.5) * zoomScale;
+        const arrowDx = tx - cp2x;
+        const arrowDy = ty - cp2y;
         const arrowLen = Math.sqrt(arrowDx * arrowDx + arrowDy * arrowDy);
         if (arrowLen > 0) {
           const arrowX = tx - (arrowDx / arrowLen) * (targetRadius + 2);
@@ -705,8 +762,12 @@ export function MemoryMapCanvas({
         const catInfo = CATEGORY_COLORS[mem.category] || { color: '#a1a1aa' };
         const isSuperseded = mem.status === 'Superseded';
 
-        // Radius scaled by importance: 9.5px to 15.5px
-        const baseRadius = 8 + mem.importance * 1.5;
+        // Dynamic harmonic floating position for breathing constellation effect
+        const pos = getNodeWorldPos(mem, time);
+
+        // Smooth radius scaling from macro dots to full interactive nodes
+        const zoomScale = Math.min(Math.max((cam.zoom - 0.55) / 0.5, 0.68), 1.0);
+        const baseRadius = (8 + mem.importance * 1.5) * zoomScale;
         const radius = isHovered ? baseRadius + 2.5 : baseRadius;
 
         ctx.save();
@@ -718,20 +779,20 @@ export function MemoryMapCanvas({
           ctx.strokeStyle = '#f26522';
           ctx.lineWidth = 2.2;
           ctx.beginPath();
-          ctx.arc(mem.x, mem.y, radius + 5 + pulse, 0, Math.PI * 2);
+          ctx.arc(pos.x, pos.y, radius + 5 + pulse, 0, Math.PI * 2);
           ctx.stroke();
         } else if (isConnected && selectedMemory) {
           // Connected related node border ring
           ctx.strokeStyle = 'rgba(242, 101, 34, 0.8)';
           ctx.lineWidth = 1.6;
           ctx.beginPath();
-          ctx.arc(mem.x, mem.y, radius + 3.5, 0, Math.PI * 2);
+          ctx.arc(pos.x, pos.y, radius + 3.5, 0, Math.PI * 2);
           ctx.stroke();
         }
 
         // Node Circle Body
         ctx.beginPath();
-        ctx.arc(mem.x, mem.y, radius, 0, Math.PI * 2);
+        ctx.arc(pos.x, pos.y, radius, 0, Math.PI * 2);
 
         if (isSelected) {
           // Selected: Solid Maximem Orange body with crisp white center core
@@ -743,7 +804,7 @@ export function MemoryMapCanvas({
 
           // Center white core
           ctx.beginPath();
-          ctx.arc(mem.x, mem.y, 3.5, 0, Math.PI * 2);
+          ctx.arc(pos.x, pos.y, 3.5, 0, Math.PI * 2);
           ctx.fillStyle = '#ffffff';
           ctx.fill();
         } else if (isSuperseded) {
@@ -758,7 +819,7 @@ export function MemoryMapCanvas({
 
           // Center muted core
           ctx.beginPath();
-          ctx.arc(mem.x, mem.y, 3, 0, Math.PI * 2);
+          ctx.arc(pos.x, pos.y, 3, 0, Math.PI * 2);
           ctx.fillStyle = '#d97706';
           ctx.fill();
         } else {
@@ -775,22 +836,24 @@ export function MemoryMapCanvas({
 
           // Center white core
           ctx.beginPath();
-          ctx.arc(mem.x, mem.y, 3.2, 0, Math.PI * 2);
+          ctx.arc(pos.x, pos.y, 3.2, 0, Math.PI * 2);
           ctx.fillStyle = '#ffffff';
           ctx.fill();
 
           // Subtle discrete category pip
           ctx.beginPath();
-          ctx.arc(mem.x + radius * 0.45, mem.y - radius * 0.45, 2, 0, Math.PI * 2);
+          ctx.arc(pos.x + radius * 0.45, pos.y - radius * 0.45, 2, 0, Math.PI * 2);
           ctx.fillStyle = catInfo.color;
           ctx.fill();
         }
 
         // =====================================================================
-        // SMART ADAPTIVE LABELS (Clear hierarchy, zero clutter)
+        // SMART ADAPTIVE LABELS (Clear hierarchy, smooth progressive fade)
         // =====================================================================
         const isZoomedIn = cam.zoom >= 1.05;
-        const showNormalLabel = isZoomedIn || mem.importance >= 5;
+        const labelFadeAlpha = Math.min(Math.max((cam.zoom - 0.85) / 0.3, 0), 1.0);
+        const showLandmark = mem.importance >= 5 && cam.zoom >= 0.72;
+        const shouldShowLabel = isSelected || isHovered || isZoomedIn || showLandmark;
 
         if (isSelected || isHovered) {
           // Expanded Inspection Card Badge
@@ -800,7 +863,7 @@ export function MemoryMapCanvas({
           const badgeW = Math.max(titleWidth + 18, 96);
           const badgeH = 30;
 
-          drawRoundedRect(ctx, mem.x - badgeW / 2, mem.y + radius + 5, badgeW, badgeH, 6);
+          drawRoundedRect(ctx, pos.x - badgeW / 2, pos.y + radius + 5, badgeW, badgeH, 6);
           ctx.fillStyle = 'rgba(18, 18, 16, 0.96)';
           ctx.fill();
           ctx.strokeStyle = isSelected ? '#f26522' : 'rgba(255, 255, 255, 0.3)';
@@ -810,21 +873,25 @@ export function MemoryMapCanvas({
           // Title
           ctx.fillStyle = '#ffffff';
           ctx.textAlign = 'center';
-          ctx.fillText(titleText, mem.x, mem.y + radius + 17);
+          ctx.fillText(titleText, pos.x, pos.y + radius + 17);
 
           // Subtitle ID & Owner
           ctx.font = 'bold 8.5px "Geist Mono", var(--font-mono), monospace';
           ctx.fillStyle = isSuperseded ? '#d97706' : '#f26522';
-          ctx.fillText(`${mem.id} · ${mem.ownerName}`, mem.x, mem.y + radius + 27);
-        } else if (showNormalLabel) {
-          // Sleek compact label (clean, readable, no oversized pill padding)
+          ctx.fillText(`${mem.id} · ${mem.ownerName}`, pos.x, pos.y + radius + 27);
+        } else if (shouldShowLabel && (labelFadeAlpha > 0.05 || showLandmark)) {
+          const effectiveAlpha = showLandmark && !isZoomedIn ? 0.75 : labelFadeAlpha;
+          ctx.save();
+          ctx.globalAlpha = (isDimmed ? 0.12 : 1.0) * effectiveAlpha;
+
+          // Sleek compact label (clean, readable, progressive fade-in)
           const titleText = truncate(mem.title, isZoomedIn ? 24 : 18);
           ctx.font = '10px "Geist", var(--font-sans), sans-serif';
           const titleWidth = ctx.measureText(titleText).width;
           const pillW = titleWidth + 10;
           const pillH = 16;
 
-          drawRoundedRect(ctx, mem.x - pillW / 2, mem.y + radius + 3, pillW, pillH, 4);
+          drawRoundedRect(ctx, pos.x - pillW / 2, pos.y + radius + 3, pillW, pillH, 4);
           ctx.fillStyle = 'rgba(18, 18, 16, 0.88)';
           ctx.fill();
           ctx.strokeStyle = isConnected
@@ -836,7 +903,8 @@ export function MemoryMapCanvas({
           // Title text
           ctx.fillStyle = isSuperseded ? '#a1a1aa' : '#f4f4f5';
           ctx.textAlign = 'center';
-          ctx.fillText(titleText, mem.x, mem.y + radius + 14);
+          ctx.fillText(titleText, pos.x, pos.y + radius + 14);
+          ctx.restore();
         }
 
         ctx.restore();
@@ -876,13 +944,15 @@ export function MemoryMapCanvas({
 
   const dragStartPosRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
 
-  // Find memory at world coordinate (covers both circle node and label)
+  // Find memory at world coordinate (covers both circle node and label, accounting for organic floating)
   const hitTestMemory = useCallback(
     (worldX: number, worldY: number): MemoryItem | null => {
+      const time = timeRef.current;
       for (const mem of allMemories) {
         if (mem.x === undefined || mem.y === undefined) continue;
-        const dx = worldX - mem.x;
-        const dy = worldY - mem.y;
+        const pos = getNodeWorldPos(mem, time);
+        const dx = worldX - pos.x;
+        const dy = worldY - pos.y;
         const baseRadius = 8 + mem.importance * 1.5;
         const hitRadius = Math.max(22, baseRadius + 12);
         if (
@@ -955,7 +1025,7 @@ export function MemoryMapCanvas({
     e.currentTarget.style.cursor = 'grabbing';
   };
 
-  // Mouse Up & Click Selection
+  // Mouse Up & Click Selection (Scope & Memory Exploration)
   const handleMouseUp = (e: React.MouseEvent<HTMLCanvasElement>) => {
     const wasDragMovement = hasDraggedRef.current;
     isDraggingRef.current = false;
@@ -973,70 +1043,99 @@ export function MemoryMapCanvas({
     if (hitMem) {
       onSelectMemory(hitMem);
     } else {
-      // Check if user clicked a customer scope header to focus it
+      // Check if user clicked a user enclave or customer territory to focus into that scope
       let hitScope = false;
+      // 1. Check nested user enclaves first
       for (const cust of data.customers) {
-        if (cust.bounds) {
-          const b = cust.bounds;
-          if (
-            world.x >= b.x &&
-            world.x <= b.x + b.width &&
-            world.y >= b.y &&
-            world.y <= b.y + 32
-          ) {
-            onSelectCustomer(cust);
-            onSelectUser(null);
-            hitScope = true;
-            break;
-          }
-          // Also check user enclave headers
-          for (const usr of cust.users) {
-            if (usr.bounds) {
-              const ub = usr.bounds;
-              if (
-                world.x >= ub.x &&
-                world.x <= ub.x + ub.width &&
-                world.y >= ub.y &&
-                world.y <= ub.y + 28
-              ) {
-                onSelectCustomer(cust);
-                onSelectUser(usr);
-                hitScope = true;
-                break;
-              }
+        for (const usr of cust.users) {
+          if (usr.bounds) {
+            const ub = usr.bounds;
+            if (
+              world.x >= ub.x &&
+              world.x <= ub.x + ub.width &&
+              world.y >= ub.y &&
+              world.y <= ub.y + ub.height
+            ) {
+              onSelectCustomer(cust);
+              onSelectUser(usr);
+              hitScope = true;
+              break;
             }
           }
-          if (hitScope) break;
+        }
+        if (hitScope) break;
+      }
+
+      // 2. If not user enclave, check customer scope territory
+      if (!hitScope) {
+        for (const cust of data.customers) {
+          if (cust.bounds) {
+            const b = cust.bounds;
+            if (
+              world.x >= b.x &&
+              world.x <= b.x + b.width &&
+              world.y >= b.y &&
+              world.y <= b.y + b.height
+            ) {
+              onSelectCustomer(cust);
+              onSelectUser(null);
+              hitScope = true;
+              break;
+            }
+          }
         }
       }
+
       if (!hitScope) {
         onSelectMemory(null);
       }
     }
   };
 
-  // Mouse Wheel Zoom
+  // Double Click: Smooth Zoom-In centered on cursor
+  const handleDoubleClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
+    const world = screenToWorld(mouseX, mouseY);
+    const hitMem = hitTestMemory(world.x, world.y);
+
+    if (hitMem) {
+      onSelectMemory(hitMem);
+      return;
+    }
+
+    // Smoothly zoom in +35% centered on mouse position
+    const currentTargetZoom = cameraRef.current.targetZoom;
+    const newTargetZoom = Math.min(currentTargetZoom * 1.35, 2.8);
+    const worldX = (mouseX - cameraRef.current.targetX) / currentTargetZoom;
+    const worldY = (mouseY - cameraRef.current.targetY) / currentTargetZoom;
+
+    cameraRef.current.targetZoom = newTargetZoom;
+    cameraRef.current.targetX = mouseX - worldX * newTargetZoom;
+    cameraRef.current.targetY = mouseY - worldY * newTargetZoom;
+    cameraRef.current.isAnimating = true;
+  };
+
+  // Mouse Wheel Zoom: Silky smooth target interpolation preserving cursor world anchor
   const handleWheel = (e: React.WheelEvent<HTMLCanvasElement>) => {
     e.preventDefault();
     const rect = e.currentTarget.getBoundingClientRect();
     const mouseX = e.clientX - rect.left;
     const mouseY = e.clientY - rect.top;
 
-    const zoomFactor = e.deltaY < 0 ? 1.12 : 0.88;
-    const currentZoom = cameraRef.current.zoom;
-    const newZoom = Math.min(Math.max(currentZoom * zoomFactor, 0.35), 3.0);
+    const zoomFactor = e.deltaY < 0 ? 1.14 : 0.86;
+    const currentTargetZoom = cameraRef.current.targetZoom;
+    const newTargetZoom = Math.min(Math.max(currentTargetZoom * zoomFactor, 0.38), 2.8);
 
-    // Zoom centered on cursor position
-    const worldBefore = screenToWorld(mouseX, mouseY);
-    cameraRef.current.zoom = newZoom;
-    cameraRef.current.x = mouseX - worldBefore.x * newZoom;
-    cameraRef.current.y = mouseY - worldBefore.y * newZoom;
-    cameraRef.current.targetX = cameraRef.current.x;
-    cameraRef.current.targetY = cameraRef.current.y;
-    cameraRef.current.targetZoom = newZoom;
-    cameraRef.current.isAnimating = false;
+    // Keep world coordinate under cursor stable:
+    const worldX = (mouseX - cameraRef.current.targetX) / currentTargetZoom;
+    const worldY = (mouseY - cameraRef.current.targetY) / currentTargetZoom;
 
-    onZoomChange(newZoom);
+    cameraRef.current.targetZoom = newTargetZoom;
+    cameraRef.current.targetX = mouseX - worldX * newTargetZoom;
+    cameraRef.current.targetY = mouseY - worldY * newTargetZoom;
+    cameraRef.current.isAnimating = true;
   };
 
   return (
@@ -1049,6 +1148,7 @@ export function MemoryMapCanvas({
         onMouseMove={handleMouseMove}
         onMouseDown={handleMouseDown}
         onMouseUp={handleMouseUp}
+        onDoubleClick={handleDoubleClick}
         onWheel={handleWheel}
         className="w-full h-full block cursor-grab active:cursor-grabbing"
       />
@@ -1131,4 +1231,28 @@ function drawRoundedRect(
 function truncate(str: string, maxLen: number): string {
   if (str.length <= maxLen) return str;
   return str.substring(0, maxLen - 1) + '…';
+}
+
+/**
+ * Organic harmonic floating movement for memory nodes.
+ * Creates a subtle living constellation feel without jitter.
+ */
+function getNodeFloat(memId: string, importance: number, time: number) {
+  let seed = 0;
+  for (let i = 0; i < memId.length; i++) {
+    seed = (seed * 31 + memId.charCodeAt(i)) & 0xfff;
+  }
+  const speed = 0.52 + (importance % 3) * 0.08;
+  const phaseX = (seed % 100) * 0.06;
+  const phaseY = (seed % 97) * 0.07 + 1.2;
+  return {
+    floatX: Math.sin(time * speed + phaseX) * 1.35,
+    floatY: Math.cos(time * (speed * 0.88) + phaseY) * 1.35,
+  };
+}
+
+function getNodeWorldPos(mem: MemoryItem, time: number): { x: number; y: number } {
+  if (mem.x === undefined || mem.y === undefined) return { x: 0, y: 0 };
+  const { floatX, floatY } = getNodeFloat(mem.id, mem.importance, time);
+  return { x: mem.x + floatX, y: mem.y + floatY };
 }
