@@ -41,21 +41,26 @@ export function CanvasBottomControls({
           <span className="text-[11px]">Size = Importance (1-5)</span>
         </div>
 
-        {/* Active vs Superseded */}
+        {/* Active vs Superseded vs Selected */}
         <div className="flex items-center gap-1.5">
-          <span className="size-2 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.8)]" />
+          <span className="size-2 rounded-full bg-white ring-1 ring-white/40" />
           <span className="text-[11px]">Active</span>
         </div>
 
         <div className="flex items-center gap-1.5">
-          <span className="size-2.5 rounded-full border border-dashed border-amber-400 bg-amber-400/20" />
+          <span className="size-2.5 rounded-full border border-dashed border-white/40 bg-[#d97706]/30" />
           <span className="text-[11px]">Superseded</span>
+        </div>
+
+        <div className="flex items-center gap-1.5">
+          <span className="size-2.5 rounded-full border-2 border-[#f26522] bg-[#f26522]" />
+          <span className="text-[11px] text-[#f26522]">Selected</span>
         </div>
 
         {/* Scope Boundaries */}
         <div className="flex items-center gap-1.5 border-l border-white/[0.08] pl-3">
-          <span className="w-3 h-2 rounded border border-[#f26522]/50 bg-[#f26522]/10" />
-          <span className="text-[11px]">Non-Overlapping Scopes</span>
+          <span className="w-3 h-2 rounded border border-white/20 bg-white/5" />
+          <span className="text-[11px]">Scope Boundaries</span>
         </div>
 
         {/* Dotted Scope Silhouette */}

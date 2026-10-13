@@ -1,26 +1,26 @@
 import { ClientScopeData, EntityCategory, MemoryItem, MemoryRelationship, RelationshipType } from './types';
 
 export const CATEGORY_METRICS: Record<EntityCategory, { color: string; label: string }> = {
-  Person: { color: '#38bdf8', label: 'Person' },
-  Channel: { color: '#34d399', label: 'Channel' },
+  Person: { color: '#94a3b8', label: 'Person' },
+  Channel: { color: '#a1a1aa', label: 'Channel' },
   Preference: { color: '#f26522', label: 'Preference' },
-  Topic: { color: '#a78bfa', label: 'Topic' },
-  Organization: { color: '#60a5fa', label: 'Organization' },
-  Product: { color: '#f472b6', label: 'Product' },
-  Place: { color: '#a3e635', label: 'Place' },
-  Event: { color: '#fb923c', label: 'Event' },
-  Security: { color: '#ef4444', label: 'Security' },
-  Contract: { color: '#eab308', label: 'Contract' },
+  Topic: { color: '#a8a29e', label: 'Topic' },
+  Organization: { color: '#94a3b8', label: 'Organization' },
+  Product: { color: '#cbd5e1', label: 'Product' },
+  Place: { color: '#a1a1aa', label: 'Place' },
+  Event: { color: '#ea580c', label: 'Event' },
+  Security: { color: '#71717a', label: 'Security' },
+  Contract: { color: '#d97706', label: 'Contract' },
 };
 
 export const CATEGORY_COLORS = CATEGORY_METRICS;
 
 export const RELATIONSHIP_METRICS: Record<RelationshipType, { label: string; color: string; borderStyle: 'solid' | 'dashed' }> = {
-  references: { label: 'References', color: '#818cf8', borderStyle: 'solid' },
-  supersedes: { label: 'Supersedes', color: '#f59e0b', borderStyle: 'dashed' },
+  references: { label: 'References', color: '#f26522', borderStyle: 'solid' },
+  supersedes: { label: 'Supersedes', color: '#d97706', borderStyle: 'dashed' },
   informs: { label: 'Informs', color: '#f26522', borderStyle: 'solid' },
-  derived_from: { label: 'Derived From', color: '#a78bfa', borderStyle: 'solid' },
-  cross_scope: { label: 'Cross-Scope Policy', color: '#ff732e', borderStyle: 'solid' },
+  derived_from: { label: 'Derived From', color: '#f26522', borderStyle: 'solid' },
+  cross_scope: { label: 'Cross-Scope Policy', color: '#f26522', borderStyle: 'solid' },
 };
 
 export const SYNAP_CLIENT_DATA: ClientScopeData = {

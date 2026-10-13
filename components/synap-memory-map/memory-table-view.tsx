@@ -114,10 +114,10 @@ export function MemoryTableView({ data, onSelectMemory }: MemoryTableViewProps) 
                   </td>
                   <td className="py-3 px-4">
                     <span
-                      className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase font-mono ${
+                      className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase font-mono border ${
                         mem.status === 'Superseded'
-                          ? 'bg-amber-500/20 text-amber-300'
-                          : 'bg-emerald-500/20 text-emerald-300'
+                          ? 'bg-[#d97706]/15 text-[#fbbf24] border-[#d97706]/30'
+                          : 'bg-white/10 text-white border-white/20'
                       }`}
                     >
                       {mem.status}

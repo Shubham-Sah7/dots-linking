@@ -337,21 +337,6 @@ export function MemoryMapCanvas({
         }
       });
 
-      // Active scope cluster mapping for highlighting
-      const activeScopeCluster = activeCustomer
-        ? activeCustomer.id.includes('stark') || activeCustomer.name.toLowerCase().includes('stark')
-          ? 'product'
-          : activeCustomer.id.includes('cyber') || activeCustomer.name.toLowerCase().includes('cyber')
-          ? 'engineering'
-          : 'operations'
-        : selectedMemory
-        ? selectedMemory.customerName.toLowerCase().includes('stark')
-          ? 'product'
-          : selectedMemory.customerName.toLowerCase().includes('cyber')
-          ? 'engineering'
-          : 'operations'
-        : null;
-
       // Draw the crisp grid of small circular dots matching the reference silhouette
       ctx.save();
       const startX = clientBounds.x + 8;
@@ -380,21 +365,13 @@ export function MemoryMapCanvas({
           }
           if (inNodeVoid) continue;
 
-          // Dot Color formatting
-          let dotFill = 'rgba(255, 255, 255, 0.35)';
+          // Dot Color formatting (Monochrome, subtle Maximem texture)
+          let dotFill = 'rgba(255, 255, 255, 0.08)';
           if (patternMode === 'reference') {
             dotFill = '#ffffff'; // Pure crisp white for reference mode
           } else {
-            const isSelectedCluster = activeScopeCluster && evalResult.cluster === activeScopeCluster;
-            if (isSelectedCluster) {
-              dotFill = '#f26522'; // Maximem orange accent for selected memories / active scope
-            } else if (evalResult.cluster === 'product') {
-              dotFill = activeScopeCluster ? 'rgba(255, 255, 255, 0.14)' : 'rgba(242, 101, 34, 0.85)';
-            } else if (evalResult.cluster === 'engineering') {
-              dotFill = activeScopeCluster ? 'rgba(255, 255, 255, 0.14)' : 'rgba(96, 165, 250, 0.85)';
-            } else if (evalResult.cluster === 'operations') {
-              dotFill = activeScopeCluster ? 'rgba(255, 255, 255, 0.14)' : 'rgba(52, 211, 153, 0.85)';
-            }
+            // Subtle monochrome dotted pattern that never competes with data
+            dotFill = 'rgba(255, 255, 255, 0.08)';
           }
 
           ctx.beginPath();
@@ -406,71 +383,71 @@ export function MemoryMapCanvas({
       ctx.restore();
 
       // =========================================================================
-      // 3. DRAW SCOPE REGIONS (Nested Spatial Territory Map, Zero Overlap)
+      // 3. DRAW SCOPE REGIONS (Ownership Scope Territories)
       // =========================================================================
 
       // A. CLIENT SCOPE BOUNDARY (Root Level Territory)
       ctx.save();
 
-      // Client Outer Territory Surface (Organic Rounded Boundary)
-      drawRoundedRect(ctx, clientBounds.x, clientBounds.y, clientBounds.width, clientBounds.height, 24);
-      ctx.fillStyle = patternMode === 'reference' ? 'transparent' : 'rgba(20, 20, 18, 0.45)';
+      // Client Outer Territory Surface
+      drawRoundedRect(ctx, clientBounds.x, clientBounds.y, clientBounds.width, clientBounds.height, 16);
+      ctx.fillStyle = patternMode === 'reference' ? 'transparent' : 'rgba(20, 20, 18, 0.35)';
       ctx.fill();
-      ctx.lineWidth = 1.5;
-      ctx.strokeStyle = patternMode === 'reference' ? 'rgba(255, 255, 255, 0.15)' : 'rgba(255, 255, 255, 0.09)';
+      ctx.lineWidth = 1.2;
+      ctx.strokeStyle = patternMode === 'reference' ? 'rgba(255, 255, 255, 0.15)' : 'rgba(255, 255, 255, 0.07)';
       ctx.stroke();
 
-      // Floating Territory Brand Badge (Top-Left Pill, No divider line)
-      const clientBadgeW = Math.min(clientBounds.width - 40, 720);
-      drawRoundedRect(ctx, clientBounds.x + 16, clientBounds.y + 12, clientBadgeW, 36, 10);
-      ctx.fillStyle = 'rgba(26, 26, 24, 0.85)';
+      // Integrated Client Scope Header
+      const clientHeaderW = Math.min(clientBounds.width - 32, 680);
+      drawRoundedRect(ctx, clientBounds.x + 16, clientBounds.y + 12, clientHeaderW, 30, 6);
+      ctx.fillStyle = 'rgba(28, 28, 26, 0.85)';
       ctx.fill();
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.06)';
       ctx.lineWidth = 1;
       ctx.stroke();
 
-      // Client Brand Dot
+      // Client Brand Accent Dot
       ctx.beginPath();
-      ctx.arc(clientBounds.x + 32, clientBounds.y + 30, 5, 0, Math.PI * 2);
+      ctx.arc(clientBounds.x + 30, clientBounds.y + 27, 4, 0, Math.PI * 2);
       ctx.fillStyle = '#f26522';
       ctx.fill();
 
       // Client Scope Title & Details
-      ctx.font = 'bold 13.5px "Geist", var(--font-sans), system-ui, sans-serif';
+      ctx.font = 'bold 12px "Geist", var(--font-sans), system-ui, sans-serif';
       ctx.fillStyle = '#ffffff';
       ctx.textAlign = 'left';
-      ctx.fillText(data.name.toUpperCase(), clientBounds.x + 44, clientBounds.y + 35);
+      ctx.fillText(data.name.toUpperCase(), clientBounds.x + 42, clientBounds.y + 31);
 
-      ctx.font = 'bold 9.5px "Geist Mono", var(--font-mono), monospace';
+      ctx.font = 'bold 9px "Geist Mono", var(--font-mono), monospace';
       ctx.fillStyle = '#f26522';
-      ctx.fillText('ROOT CLIENT ENCLAVE', clientBounds.x + 295, clientBounds.y + 35);
+      ctx.fillText('ROOT CLIENT ENCLAVE', clientBounds.x + 280, clientBounds.y + 31);
 
-      ctx.font = '10px "Geist Mono", var(--font-mono), monospace';
+      ctx.font = '9.5px "Geist Mono", var(--font-mono), monospace';
       ctx.fillStyle = 'rgba(255, 255, 255, 0.45)';
       ctx.fillText(
         `Multi-Tenant Isolation · ${data.totalMemories} Memories · ${data.totalScopes} Scopes`,
-        clientBounds.x + 445,
-        clientBounds.y + 35
+        clientBounds.x + 420,
+        clientBounds.y + 31
       );
 
-      // Client Global Memories Terrace (y: 56 to 175)
+      // Client Global Memories Terrace (y: 52 to 170)
       const clientCorridor = {
-        x: clientBounds.x + 20,
-        y: clientBounds.y + 56,
-        width: clientBounds.width - 40,
-        height: 118,
+        x: clientBounds.x + 16,
+        y: clientBounds.y + 48,
+        width: clientBounds.width - 32,
+        height: 122,
       };
-      drawRoundedRect(ctx, clientCorridor.x, clientCorridor.y, clientCorridor.width, clientCorridor.height, 14);
-      ctx.fillStyle = patternMode === 'reference' ? 'transparent' : 'rgba(25, 25, 23, 0.35)';
+      drawRoundedRect(ctx, clientCorridor.x, clientCorridor.y, clientCorridor.width, clientCorridor.height, 10);
+      ctx.fillStyle = patternMode === 'reference' ? 'transparent' : 'rgba(26, 26, 24, 0.25)';
       ctx.fill();
       ctx.lineWidth = 1;
-      ctx.strokeStyle = patternMode === 'reference' ? 'rgba(255, 255, 255, 0.12)' : 'rgba(242, 101, 34, 0.22)';
+      ctx.strokeStyle = patternMode === 'reference' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(255, 255, 255, 0.06)';
       ctx.stroke();
 
-      // Terrace floating label
-      ctx.font = 'bold 9.5px "Geist Mono", var(--font-mono), monospace';
-      ctx.fillStyle = '#f26522';
-      ctx.fillText('GLOBAL CLIENT-LEVEL MEMORIES (CROSS-TENANT INHERITANCE)', clientCorridor.x + 18, clientCorridor.y + 20);
+      // Terrace label
+      ctx.font = 'bold 9px "Geist Mono", var(--font-mono), monospace';
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+      ctx.fillText('GLOBAL CLIENT POLICIES (CROSS-TENANT INHERITANCE)', clientCorridor.x + 16, clientCorridor.y + 18);
       ctx.restore();
 
       // B. CUSTOMER SCOPE TERRITORIES
@@ -481,74 +458,54 @@ export function MemoryMapCanvas({
 
         ctx.save();
 
-        // Customer Territory Ambient Background Glow on selection/hover
-        if (patternMode !== 'reference' && (isSelected || isHovered)) {
-          const custGlow = ctx.createRadialGradient(
-            bounds.x + bounds.width / 2,
-            bounds.y + bounds.height / 2,
-            40,
-            bounds.x + bounds.width / 2,
-            bounds.y + bounds.height / 2,
-            bounds.width * 0.55
-          );
-          custGlow.addColorStop(0, isSelected ? 'rgba(242, 101, 34, 0.10)' : 'rgba(242, 101, 34, 0.05)');
-          custGlow.addColorStop(1, 'transparent');
-          ctx.fillStyle = custGlow;
-          ctx.fillRect(bounds.x - 12, bounds.y - 12, bounds.width + 24, bounds.height + 24);
-        }
-
-        // Customer Territory Spatial Surface (No widget lines)
-        drawRoundedRect(ctx, bounds.x, bounds.y, bounds.width, bounds.height, 18);
+        // Customer Territory Surface
+        drawRoundedRect(ctx, bounds.x, bounds.y, bounds.width, bounds.height, 12);
         ctx.fillStyle = patternMode === 'reference'
           ? 'transparent'
           : isSelected
-          ? 'rgba(242, 101, 34, 0.08)'
+          ? 'rgba(242, 101, 34, 0.04)'
           : isHovered
-          ? 'rgba(25, 25, 22, 0.45)'
-          : 'rgba(24, 24, 21, 0.35)';
+          ? 'rgba(28, 28, 26, 0.45)'
+          : 'rgba(24, 24, 22, 0.35)';
         ctx.fill();
-        ctx.lineWidth = isSelected ? 2 : isHovered ? 1.5 : 1;
+        ctx.lineWidth = isSelected ? 1.8 : isHovered ? 1.4 : 1;
         ctx.strokeStyle = isSelected
           ? '#f26522'
           : isHovered
-          ? 'rgba(242, 101, 34, 0.5)'
+          ? 'rgba(242, 101, 34, 0.4)'
           : patternMode === 'reference'
-          ? 'rgba(255, 255, 255, 0.15)'
+          ? 'rgba(255, 255, 255, 0.12)'
           : 'rgba(255, 255, 255, 0.08)';
         ctx.stroke();
 
-        // Customer Floating Header Badge (Seamless pill at top)
-        const headerPillW = Math.min(bounds.width - 24, bounds.width > 400 ? 460 : bounds.width - 24);
-        drawRoundedRect(ctx, bounds.x + 12, bounds.y + 10, headerPillW, 30, 8);
-        ctx.fillStyle = patternMode === 'reference' ? 'rgba(0, 0, 0, 0.8)' : 'rgba(32, 32, 29, 0.8)';
+        // Integrated Header Bar
+        const headerW = bounds.width - 20;
+        drawRoundedRect(ctx, bounds.x + 10, bounds.y + 8, headerW, 26, 6);
+        ctx.fillStyle = patternMode === 'reference' ? 'rgba(0, 0, 0, 0.8)' : 'rgba(30, 30, 28, 0.7)';
         ctx.fill();
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.07)';
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
         ctx.lineWidth = 1;
         ctx.stroke();
 
         // Customer Name
-        ctx.font = 'bold 12px "Geist", var(--font-sans), system-ui, sans-serif';
+        ctx.font = 'bold 11.5px "Geist", var(--font-sans), system-ui, sans-serif';
         ctx.fillStyle = '#ffffff';
         ctx.textAlign = 'left';
-        ctx.fillText(cust.name, bounds.x + 22, bounds.y + 30);
+        ctx.fillText(cust.name, bounds.x + 20, bounds.y + 25);
 
-        // Industry Scope Pill (inside pill)
+        // Industry Scope
         if (bounds.width > 340) {
           ctx.font = '9px "Geist Mono", var(--font-mono), monospace';
           ctx.fillStyle = 'rgba(255, 255, 255, 0.45)';
-          const custIndustry = truncate(cust.industry.toUpperCase(), 18);
-          ctx.fillText(`· ${custIndustry}`, bounds.x + 130, bounds.y + 30);
+          const custIndustry = truncate(cust.industry.toUpperCase(), 20);
+          ctx.fillText(`· ${custIndustry}`, bounds.x + 125, bounds.y + 25);
         }
 
-        // Memory Count Tag on right inside header pill
-        ctx.font = 'bold 9.5px "Geist Mono", var(--font-mono), monospace';
+        // Memory Count Tag
+        ctx.font = 'bold 9px "Geist Mono", var(--font-mono), monospace';
         ctx.fillStyle = '#f26522';
         ctx.textAlign = 'right';
-        ctx.fillText(
-          `${cust.memoryCount} mems`,
-          bounds.x + headerPillW,
-          bounds.y + 30
-        );
+        ctx.fillText(`${cust.memoryCount} mems`, bounds.x + headerW, bounds.y + 25);
         ctx.textAlign = 'left';
 
         ctx.restore();
@@ -561,60 +518,63 @@ export function MemoryMapCanvas({
 
           ctx.save();
           // User Enclave Surface
-          drawRoundedRect(ctx, uBounds.x, uBounds.y, uBounds.width, uBounds.height, 14);
+          drawRoundedRect(ctx, uBounds.x, uBounds.y, uBounds.width, uBounds.height, 10);
           ctx.fillStyle = patternMode === 'reference'
             ? 'transparent'
             : isUserSelected
-            ? 'rgba(32, 32, 28, 0.55)'
+            ? 'rgba(34, 34, 30, 0.5)'
             : isUserHovered
-            ? 'rgba(30, 30, 26, 0.45)'
-            : 'rgba(29, 29, 26, 0.35)';
+            ? 'rgba(30, 30, 28, 0.4)'
+            : 'rgba(26, 26, 24, 0.25)';
           ctx.fill();
-          ctx.lineWidth = isUserSelected ? 2 : isUserHovered ? 1.5 : 1;
+          ctx.lineWidth = isUserSelected ? 1.6 : isUserHovered ? 1.2 : 1;
           ctx.strokeStyle = isUserSelected
             ? '#f26522'
             : isUserHovered
-            ? 'rgba(242, 101, 34, 0.45)'
+            ? 'rgba(242, 101, 34, 0.35)'
             : patternMode === 'reference'
-            ? 'rgba(255, 255, 255, 0.12)'
-            : 'rgba(255, 255, 255, 0.07)';
+            ? 'rgba(255, 255, 255, 0.1)'
+            : 'rgba(255, 255, 255, 0.05)';
           ctx.stroke();
 
-          // User Enclave Floating Top Identity Tag
-          drawRoundedRect(ctx, uBounds.x + 10, uBounds.y + 8, uBounds.width - 20, 26, 7);
-          ctx.fillStyle = 'rgba(38, 38, 34, 0.6)';
+          // User Enclave Header Tag
+          drawRoundedRect(ctx, uBounds.x + 8, uBounds.y + 6, uBounds.width - 16, 22, 5);
+          ctx.fillStyle = 'rgba(34, 34, 32, 0.5)';
           ctx.fill();
-          ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+          ctx.strokeStyle = 'rgba(255, 255, 255, 0.04)';
           ctx.lineWidth = 1;
           ctx.stroke();
 
-          // Avatar Pill
+          // User Avatar Pip
           ctx.beginPath();
-          ctx.arc(uBounds.x + 22, uBounds.y + 21, 7.5, 0, Math.PI * 2);
-          ctx.fillStyle = '#f26522';
+          ctx.arc(uBounds.x + 19, uBounds.y + 17, 6, 0, Math.PI * 2);
+          ctx.fillStyle = '#2e2e2a';
           ctx.fill();
-          ctx.font = 'bold 8.5px "Geist Mono", var(--font-mono), monospace';
+          ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+          ctx.lineWidth = 1;
+          ctx.stroke();
+          ctx.font = 'bold 7.5px "Geist Mono", var(--font-mono), monospace';
           ctx.fillStyle = '#ffffff';
           ctx.textAlign = 'center';
-          ctx.fillText(usr.avatar || 'U', uBounds.x + 22, uBounds.y + 24);
+          ctx.fillText(usr.avatar || 'U', uBounds.x + 19, uBounds.y + 20);
           ctx.textAlign = 'left';
 
           // User Name & Role
-          ctx.font = 'bold 11px "Geist", var(--font-sans), system-ui, sans-serif';
+          ctx.font = 'bold 10.5px "Geist", var(--font-sans), system-ui, sans-serif';
           ctx.fillStyle = '#ffffff';
-          ctx.fillText(truncate(usr.name, 16), uBounds.x + 36, uBounds.y + 25);
+          ctx.fillText(truncate(usr.name, 15), uBounds.x + 31, uBounds.y + 21);
 
           // Role (if width allows)
           if (uBounds.width > 240) {
-            ctx.font = '9px "Geist Mono", var(--font-mono), monospace';
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.45)';
-            ctx.fillText(truncate(usr.role, 14), uBounds.x + 130, uBounds.y + 25);
+            ctx.font = '8.5px "Geist Mono", var(--font-mono), monospace';
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+            ctx.fillText(truncate(usr.role, 14), uBounds.x + 120, uBounds.y + 21);
           }
 
-          ctx.font = 'bold 9.5px "Geist Mono", var(--font-mono), monospace';
+          ctx.font = 'bold 8.5px "Geist Mono", var(--font-mono), monospace';
           ctx.fillStyle = '#f26522';
           ctx.textAlign = 'right';
-          ctx.fillText(`${usr.memories.length} mems`, uBounds.x + uBounds.width - 16, uBounds.y + 25);
+          ctx.fillText(`${usr.memories.length} mems`, uBounds.x + uBounds.width - 14, uBounds.y + 21);
           ctx.textAlign = 'left';
 
           ctx.restore();
@@ -622,7 +582,7 @@ export function MemoryMapCanvas({
       });
 
       // =========================================================================
-      // 4. DRAW RELATIONSHIP EDGES (With Directional Arrows & Traveling Photons)
+      // 4. DRAW RELATIONSHIP EDGES (Real Verified Relationships)
       // =========================================================================
       allRelationships.forEach((rel) => {
         const sourceMem = findMemoryById(rel.sourceMemoryId, data);
@@ -636,7 +596,7 @@ export function MemoryMapCanvas({
 
         const relInfo = RELATIONSHIP_METRICS[rel.type] || {
           label: rel.type,
-          color: '#38bdf8',
+          color: '#f26522',
           borderStyle: 'solid',
         };
 
@@ -652,8 +612,8 @@ export function MemoryMapCanvas({
         const dy = ty - sy;
         const dist = Math.sqrt(dx * dx + dy * dy);
 
-        // Curvature calculation
-        const curvature = Math.min(dist * 0.14, 55);
+        // Subtle Curvature
+        const curvature = Math.min(dist * 0.12, 45);
         const midX = (sx + tx) / 2 - (dy / dist) * curvature;
         const midY = (sy + ty) / 2 + (dx / dist) * curvature;
 
@@ -661,62 +621,45 @@ export function MemoryMapCanvas({
         ctx.quadraticCurveTo(midX, midY, tx, ty);
 
         if (isIncident) {
-          // Highlighted active edge
-          ctx.strokeStyle = relInfo.color;
-          ctx.lineWidth = 2.4;
-          ctx.shadowColor = relInfo.color;
-          ctx.shadowBlur = 10;
+          // Highlighted active edge in Maximem Orange
+          ctx.strokeStyle = '#f26522';
+          ctx.lineWidth = 2.2;
           ctx.stroke();
-          ctx.shadowBlur = 0;
 
-          // Traveling photon bead on selected edge!
-          const photonProgress = (time * 0.75) % 1;
-          const t = photonProgress;
-          const px = (1 - t) * (1 - t) * sx + 2 * (1 - t) * t * midX + t * t * tx;
-          const py = (1 - t) * (1 - t) * sy + 2 * (1 - t) * t * midY + t * t * ty;
-
-          ctx.fillStyle = '#ffffff';
-          ctx.shadowColor = relInfo.color;
-          ctx.shadowBlur = 12;
-          ctx.beginPath();
-          ctx.arc(px, py, 4, 0, Math.PI * 2);
-          ctx.fill();
-          ctx.shadowBlur = 0;
-
-          // Relationship Type Pill Label at curve midpoint
-          ctx.font = 'bold 9px "Geist Mono", var(--font-mono), monospace';
+          // Relationship Type Label Badge at curve midpoint
+          ctx.font = 'bold 8.5px "Geist Mono", var(--font-mono), monospace';
           const labelText = relInfo.label.toUpperCase();
           const textMetrics = ctx.measureText(labelText);
-          const pillW = textMetrics.width + 12;
-          const pillH = 16;
+          const pillW = textMetrics.width + 10;
+          const pillH = 15;
 
           // Pill Background
-          drawRoundedRect(ctx, midX - pillW / 2, midY - pillH / 2 - 4, pillW, pillH, 4);
-          ctx.fillStyle = 'rgba(20, 20, 19, 0.95)';
+          drawRoundedRect(ctx, midX - pillW / 2, midY - pillH / 2 - 2, pillW, pillH, 4);
+          ctx.fillStyle = '#181816';
           ctx.fill();
-          ctx.strokeStyle = relInfo.color;
+          ctx.strokeStyle = '#f26522';
           ctx.lineWidth = 1;
           ctx.stroke();
 
           // Pill Text
           ctx.fillStyle = '#ffffff';
           ctx.textAlign = 'center';
-          ctx.fillText(labelText, midX, midY + 1);
+          ctx.fillText(labelText, midX, midY + 2);
           ctx.textAlign = 'left';
         } else {
-          // Normal or dimmed edge
-          const alpha = isDimmed ? 0.08 : 0.4;
-          ctx.strokeStyle = hexToRgba(relInfo.color, alpha);
-          ctx.lineWidth = 1.3;
+          // Normal or dimmed edge (quiet, understated neutral grey)
+          const edgeAlpha = isDimmed ? 0.03 : 0.16;
+          ctx.strokeStyle = `rgba(255, 255, 255, ${edgeAlpha})`;
+          ctx.lineWidth = 1.2;
           if (relInfo.borderStyle === 'dashed') {
-            ctx.setLineDash([4, 4]);
+            ctx.setLineDash([3, 3]);
           }
           ctx.stroke();
           ctx.setLineDash([]);
         }
 
-        // Directional Arrow Head at the target node
-        const targetRadius = 7.5 + targetMem.importance * 1.8;
+        // Directional Arrow Head at target node
+        const targetRadius = 8 + targetMem.importance * 1.5;
         const arrowDx = tx - midX;
         const arrowDy = ty - midY;
         const arrowLen = Math.sqrt(arrowDx * arrowDx + arrowDy * arrowDy);
@@ -724,9 +667,9 @@ export function MemoryMapCanvas({
           const arrowX = tx - (arrowDx / arrowLen) * (targetRadius + 2);
           const arrowY = ty - (arrowDy / arrowLen) * (targetRadius + 2);
           const angle = Math.atan2(arrowDy, arrowDx);
-          const arrowSize = isIncident ? 6.5 : 4.5;
+          const arrowSize = isIncident ? 6 : 4;
 
-          ctx.fillStyle = isIncident ? relInfo.color : hexToRgba(relInfo.color, isDimmed ? 0.1 : 0.5);
+          ctx.fillStyle = isIncident ? '#f26522' : `rgba(255, 255, 255, ${isDimmed ? 0.04 : 0.25})`;
           ctx.beginPath();
           ctx.moveTo(arrowX, arrowY);
           ctx.lineTo(
@@ -745,7 +688,7 @@ export function MemoryMapCanvas({
       });
 
       // =========================================================================
-      // 5. DRAW MEMORY NODES & CENTERED HIGH-CONTRAST LABELS
+      // 5. DRAW MEMORY NODES & SMART LABELS
       // =========================================================================
       allMemories.forEach((mem) => {
         if (mem.x === undefined || mem.y === undefined) return;
@@ -759,135 +702,141 @@ export function MemoryMapCanvas({
         const isHovered = hoveredMemoryRef.current?.id === mem.id;
         const isDimmed = selectedMemory && !isConnected && !isSelected;
 
-        const catInfo = CATEGORY_COLORS[mem.category] || { color: '#f26522' };
+        const catInfo = CATEGORY_COLORS[mem.category] || { color: '#a1a1aa' };
         const isSuperseded = mem.status === 'Superseded';
 
-        // Radius scaled by importance: 11px to 18px
-        const baseRadius = 10 + mem.importance * 1.6;
-        const radius = isHovered ? baseRadius + 3.5 : baseRadius;
+        // Radius scaled by importance: 9.5px to 15.5px
+        const baseRadius = 8 + mem.importance * 1.5;
+        const radius = isHovered ? baseRadius + 2.5 : baseRadius;
 
         ctx.save();
         ctx.globalAlpha = isDimmed ? 0.14 : 1.0;
 
-        // Ambient node glow on hover / selection
-        if (isSelected || isHovered) {
-          const glowRadius = radius * 3.6;
-          const radial = ctx.createRadialGradient(mem.x, mem.y, radius * 0.4, mem.x, mem.y, glowRadius);
-          radial.addColorStop(0, hexToRgba(catInfo.color, 0.7));
-          radial.addColorStop(1, 'transparent');
-          ctx.fillStyle = radial;
-          ctx.beginPath();
-          ctx.arc(mem.x, mem.y, glowRadius, 0, Math.PI * 2);
-          ctx.fill();
-        } else if (isConnected && selectedMemory) {
-          // Connected related node subtle glow
-          const glowRadius = radius * 2.4;
-          const radial = ctx.createRadialGradient(mem.x, mem.y, radius * 0.4, mem.x, mem.y, glowRadius);
-          radial.addColorStop(0, 'rgba(242, 101, 34, 0.4)');
-          radial.addColorStop(1, 'transparent');
-          ctx.fillStyle = radial;
-          ctx.beginPath();
-          ctx.arc(mem.x, mem.y, glowRadius, 0, Math.PI * 2);
-          ctx.fill();
-        }
-
         // Selected Pulsing Ring with Maximem Brand Orange
         if (isSelected) {
-          const pulse = Math.sin(time * 4) * 4;
+          const pulse = Math.sin(time * 3) * 2.5;
           ctx.strokeStyle = '#f26522';
-          ctx.lineWidth = 2.4;
+          ctx.lineWidth = 2.2;
           ctx.beginPath();
-          ctx.arc(mem.x, mem.y, radius + 6 + pulse, 0, Math.PI * 2);
+          ctx.arc(mem.x, mem.y, radius + 5 + pulse, 0, Math.PI * 2);
           ctx.stroke();
         } else if (isConnected && selectedMemory) {
           // Connected related node border ring
-          ctx.strokeStyle = 'rgba(242, 101, 34, 0.75)';
+          ctx.strokeStyle = 'rgba(242, 101, 34, 0.8)';
           ctx.lineWidth = 1.6;
-          ctx.setLineDash([3, 2]);
           ctx.beginPath();
-          ctx.arc(mem.x, mem.y, radius + 4, 0, Math.PI * 2);
+          ctx.arc(mem.x, mem.y, radius + 3.5, 0, Math.PI * 2);
           ctx.stroke();
-          ctx.setLineDash([]);
         }
 
         // Node Circle Body
         ctx.beginPath();
         ctx.arc(mem.x, mem.y, radius, 0, Math.PI * 2);
 
-        if (isSuperseded) {
-          // Superseded node: Muted center with dashed amber outline
-          ctx.fillStyle = 'rgba(28, 28, 25, 0.95)';
+        if (isSelected) {
+          // Selected: Solid Maximem Orange body with crisp white center core
+          ctx.fillStyle = '#f26522';
           ctx.fill();
-          ctx.setLineDash([3.5, 2.5]);
-          ctx.strokeStyle = isSelected ? '#f59e0b' : 'rgba(245, 158, 11, 0.85)';
-          ctx.lineWidth = 1.8;
+          ctx.strokeStyle = '#ffffff';
+          ctx.lineWidth = 2;
+          ctx.stroke();
+
+          // Center white core
+          ctx.beginPath();
+          ctx.arc(mem.x, mem.y, 3.5, 0, Math.PI * 2);
+          ctx.fillStyle = '#ffffff';
+          ctx.fill();
+        } else if (isSuperseded) {
+          // Superseded: Dark body with dashed grey border & muted core
+          ctx.fillStyle = '#1c1c1a';
+          ctx.fill();
+          ctx.setLineDash([3, 2]);
+          ctx.strokeStyle = isHovered ? '#ffffff' : 'rgba(255, 255, 255, 0.28)';
+          ctx.lineWidth = 1.5;
           ctx.stroke();
           ctx.setLineDash([]);
 
-          // Center amber core dot
+          // Center muted core
           ctx.beginPath();
-          ctx.arc(mem.x, mem.y, radius * 0.45, 0, Math.PI * 2);
-          ctx.fillStyle = '#f59e0b';
+          ctx.arc(mem.x, mem.y, 3, 0, Math.PI * 2);
+          ctx.fillStyle = '#d97706';
           ctx.fill();
         } else {
-          // Active node: Solid luminous core with category color
+          // Active node: Solid dark charcoal body with crisp silver border
+          ctx.fillStyle = '#242422';
+          ctx.fill();
+          ctx.lineWidth = isHovered ? 2 : 1.5;
+          ctx.strokeStyle = isHovered
+            ? '#ffffff'
+            : isConnected
+            ? '#f26522'
+            : 'rgba(255, 255, 255, 0.38)';
+          ctx.stroke();
+
+          // Center white core
+          ctx.beginPath();
+          ctx.arc(mem.x, mem.y, 3.2, 0, Math.PI * 2);
+          ctx.fillStyle = '#ffffff';
+          ctx.fill();
+
+          // Subtle discrete category pip
+          ctx.beginPath();
+          ctx.arc(mem.x + radius * 0.45, mem.y - radius * 0.45, 2, 0, Math.PI * 2);
           ctx.fillStyle = catInfo.color;
           ctx.fill();
-          ctx.lineWidth = 1.8;
-          ctx.strokeStyle = isSelected ? '#ffffff' : 'rgba(255, 255, 255, 0.65)';
-          ctx.stroke();
         }
 
         // =====================================================================
-        // HIGH-CONTRAST CAPSULE LABELS (100% LEGIBILITY AT NORMAL ZOOM)
+        // SMART ADAPTIVE LABELS (Clear hierarchy, zero clutter)
         // =====================================================================
+        const isZoomedIn = cam.zoom >= 1.05;
+        const showNormalLabel = isZoomedIn || mem.importance >= 5;
+
         if (isSelected || isHovered) {
           // Expanded Inspection Card Badge
           const titleText = truncate(mem.title, 34);
-          ctx.font = 'bold 11.5px "Geist", var(--font-sans), sans-serif';
+          ctx.font = 'bold 11px "Geist", var(--font-sans), sans-serif';
           const titleWidth = ctx.measureText(titleText).width;
-          const badgeW = Math.max(titleWidth + 20, 100);
-          const badgeH = 32;
+          const badgeW = Math.max(titleWidth + 18, 96);
+          const badgeH = 30;
 
-          drawRoundedRect(ctx, mem.x - badgeW / 2, mem.y + radius + 5, badgeW, badgeH, 7);
-          ctx.fillStyle = 'rgba(18, 18, 16, 0.98)';
+          drawRoundedRect(ctx, mem.x - badgeW / 2, mem.y + radius + 5, badgeW, badgeH, 6);
+          ctx.fillStyle = 'rgba(18, 18, 16, 0.96)';
           ctx.fill();
-          ctx.strokeStyle = isSelected ? '#f26522' : 'rgba(255, 255, 255, 0.25)';
-          ctx.lineWidth = isSelected ? 1.5 : 1;
+          ctx.strokeStyle = isSelected ? '#f26522' : 'rgba(255, 255, 255, 0.3)';
+          ctx.lineWidth = 1;
           ctx.stroke();
 
           // Title
           ctx.fillStyle = '#ffffff';
           ctx.textAlign = 'center';
-          ctx.fillText(titleText, mem.x, mem.y + radius + 19);
+          ctx.fillText(titleText, mem.x, mem.y + radius + 17);
 
           // Subtitle ID & Owner
-          ctx.font = 'bold 9px "Geist Mono", var(--font-mono), monospace';
-          ctx.fillStyle = isSuperseded ? '#f59e0b' : '#f26522';
-          ctx.fillText(`${mem.id} · ${mem.ownerName}`, mem.x, mem.y + radius + 30);
-        } else {
-          // Crisp Capsule Pill behind normal node label
-          const maxChars = mem.importance >= 4 ? 24 : 20;
-          const titleText = truncate(mem.title, maxChars);
-          ctx.font = 'bold 11px "Geist", var(--font-sans), sans-serif';
+          ctx.font = 'bold 8.5px "Geist Mono", var(--font-mono), monospace';
+          ctx.fillStyle = isSuperseded ? '#d97706' : '#f26522';
+          ctx.fillText(`${mem.id} · ${mem.ownerName}`, mem.x, mem.y + radius + 27);
+        } else if (showNormalLabel) {
+          // Sleek compact label (clean, readable, no oversized pill padding)
+          const titleText = truncate(mem.title, isZoomedIn ? 24 : 18);
+          ctx.font = '10px "Geist", var(--font-sans), sans-serif';
           const titleWidth = ctx.measureText(titleText).width;
-          const pillW = titleWidth + 14;
-          const pillH = 19;
+          const pillW = titleWidth + 10;
+          const pillH = 16;
 
-          // Capsule pill backing
-          drawRoundedRect(ctx, mem.x - pillW / 2, mem.y + radius + 4, pillW, pillH, 5);
-          ctx.fillStyle = 'rgba(16, 16, 14, 0.92)';
+          drawRoundedRect(ctx, mem.x - pillW / 2, mem.y + radius + 3, pillW, pillH, 4);
+          ctx.fillStyle = 'rgba(18, 18, 16, 0.88)';
           ctx.fill();
           ctx.strokeStyle = isConnected
-            ? 'rgba(242, 101, 34, 0.5)'
-            : 'rgba(255, 255, 255, 0.12)';
+            ? 'rgba(242, 101, 34, 0.45)'
+            : 'rgba(255, 255, 255, 0.08)';
           ctx.lineWidth = 1;
           ctx.stroke();
 
           // Title text
-          ctx.fillStyle = isSuperseded ? '#f59e0b' : '#f4f4f5';
+          ctx.fillStyle = isSuperseded ? '#a1a1aa' : '#f4f4f5';
           ctx.textAlign = 'center';
-          ctx.fillText(titleText, mem.x, mem.y + radius + 17);
+          ctx.fillText(titleText, mem.x, mem.y + radius + 14);
         }
 
         ctx.restore();
@@ -925,18 +874,20 @@ export function MemoryMapCanvas({
     };
   }, []);
 
-  // Find memory at world coordinate (covers both circle node and capsule pill)
+  const dragStartPosRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+
+  // Find memory at world coordinate (covers both circle node and label)
   const hitTestMemory = useCallback(
     (worldX: number, worldY: number): MemoryItem | null => {
       for (const mem of allMemories) {
         if (mem.x === undefined || mem.y === undefined) continue;
         const dx = worldX - mem.x;
         const dy = worldY - mem.y;
-        const baseRadius = 10 + mem.importance * 1.6;
-        const hitRadius = Math.max(25, baseRadius + 10);
+        const baseRadius = 8 + mem.importance * 1.5;
+        const hitRadius = Math.max(22, baseRadius + 12);
         if (
           dx * dx + dy * dy <= hitRadius * hitRadius ||
-          (Math.abs(dx) <= 55 && dy >= 0 && dy <= baseRadius + 26)
+          (Math.abs(dx) <= 60 && dy >= 0 && dy <= baseRadius + 24)
         ) {
           return mem;
         }
@@ -953,7 +904,13 @@ export function MemoryMapCanvas({
     const mouseY = e.clientY - rect.top;
 
     if (isDraggingRef.current) {
-      hasDraggedRef.current = true;
+      const totalDist = Math.hypot(
+        mouseX - dragStartPosRef.current.x,
+        mouseY - dragStartPosRef.current.y
+      );
+      if (totalDist > 4) {
+        hasDraggedRef.current = true;
+      }
       const dx = mouseX - lastMousePosRef.current.x;
       const dy = mouseY - lastMousePosRef.current.y;
       cameraRef.current.x += dx;
@@ -991,7 +948,10 @@ export function MemoryMapCanvas({
     isDraggingRef.current = true;
     hasDraggedRef.current = false;
     const rect = e.currentTarget.getBoundingClientRect();
-    lastMousePosRef.current = { x: e.clientX - rect.left, y: e.clientY - rect.top };
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
+    dragStartPosRef.current = { x: mouseX, y: mouseY };
+    lastMousePosRef.current = { x: mouseX, y: mouseY };
     e.currentTarget.style.cursor = 'grabbing';
   };
 
@@ -1022,13 +982,31 @@ export function MemoryMapCanvas({
             world.x >= b.x &&
             world.x <= b.x + b.width &&
             world.y >= b.y &&
-            world.y <= b.y + 36
+            world.y <= b.y + 32
           ) {
             onSelectCustomer(cust);
             onSelectUser(null);
             hitScope = true;
             break;
           }
+          // Also check user enclave headers
+          for (const usr of cust.users) {
+            if (usr.bounds) {
+              const ub = usr.bounds;
+              if (
+                world.x >= ub.x &&
+                world.x <= ub.x + ub.width &&
+                world.y >= ub.y &&
+                world.y <= ub.y + 28
+              ) {
+                onSelectCustomer(cust);
+                onSelectUser(usr);
+                hitScope = true;
+                break;
+              }
+            }
+          }
+          if (hitScope) break;
         }
       }
       if (!hitScope) {
@@ -1085,8 +1063,8 @@ export function MemoryMapCanvas({
             <span
               className="text-[9px] font-mono font-bold uppercase px-1.5 py-0.5 rounded tracking-wider"
               style={{
-                backgroundColor: `${CATEGORY_COLORS[tooltip.memory.category]?.color}22`,
-                color: CATEGORY_COLORS[tooltip.memory.category]?.color,
+                backgroundColor: 'rgba(255, 255, 255, 0.08)',
+                color: CATEGORY_COLORS[tooltip.memory.category]?.color || '#ffffff',
               }}
             >
               {tooltip.memory.category}
@@ -1106,7 +1084,7 @@ export function MemoryMapCanvas({
               {tooltip.memory.ownerName}
             </span>
             <span className="text-[#71717a]">·</span>
-            <span className="text-[#34d399]">
+            <span className="text-[#f26522]">
               {tooltip.memory.relationships.length} links
             </span>
           </div>
@@ -1148,14 +1126,6 @@ function drawRoundedRect(
     ctx.quadraticCurveTo(x, y, x + radius, y);
   }
   ctx.closePath();
-}
-
-function hexToRgba(hex: string, alpha: number): string {
-  const cleanHex = hex.replace('#', '');
-  const r = parseInt(cleanHex.substring(0, 2), 16) || 0;
-  const g = parseInt(cleanHex.substring(2, 4), 16) || 0;
-  const b = parseInt(cleanHex.substring(4, 6), 16) || 0;
-  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
 function truncate(str: string, maxLen: number): string {

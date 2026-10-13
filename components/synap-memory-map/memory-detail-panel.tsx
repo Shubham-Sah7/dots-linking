@@ -274,7 +274,7 @@ export function MemoryDetailPanel({
         {/* Footer Isolation Guarantee */}
         <div className="pt-4 border-t border-white/[0.08] text-[10px] font-mono text-white/40 flex items-center justify-between">
           <span>Maximem Privacy Engine</span>
-          <span className="text-emerald-400 font-semibold">Zero-Leakage Verified</span>
+          <span className="text-[#f26522] font-semibold">Zero-Leakage Verified</span>
         </div>
       </aside>
     );
@@ -305,8 +305,8 @@ export function MemoryDetailPanel({
             <span
               className={`w-2.5 h-2.5 rounded-full ${
                 isSuperseded
-                  ? 'bg-amber-400 ring-2 ring-amber-400/30'
-                  : 'bg-emerald-400 ring-2 ring-emerald-400/30'
+                  ? 'bg-[#d97706] ring-2 ring-[#d97706]/30'
+                  : 'bg-white ring-2 ring-white/30'
               }`}
             />
             <span className="text-xs font-mono font-bold text-white tracking-wider">
@@ -315,8 +315,8 @@ export function MemoryDetailPanel({
             <span
               className={`text-[10px] font-mono px-2 py-0.5 rounded-full uppercase tracking-wider font-semibold ${
                 isSuperseded
-                  ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
-                  : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                  ? 'bg-[#d97706]/15 text-[#fbbf24] border border-[#d97706]/30'
+                  : 'bg-white/10 text-white border border-white/20'
               }`}
             >
               {memory.status}
@@ -426,8 +426,8 @@ export function MemoryDetailPanel({
           {/* Verified Confidence */}
           <div className="p-2.5 rounded-lg bg-[#181816] border border-white/[0.06] space-y-1">
             <span className="text-[9px] text-white/40 uppercase">Confidence</span>
-            <div className="flex items-center gap-1 font-semibold text-emerald-400">
-              <CheckCircle2 size={12} />
+            <div className="flex items-center gap-1 font-semibold text-white">
+              <CheckCircle2 size={12} className="text-[#f26522]" />
               <span>{Math.round(memory.confidence * 100)}%</span>
             </div>
           </div>

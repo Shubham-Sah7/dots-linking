@@ -319,7 +319,7 @@ export function GraphFilterHeader({
               onSelectMemory(null);
             }}
             className={`px-2 py-0.5 rounded transition-colors ${
-              !activeCustomer && !activeUser
+              !activeCustomer && !activeUser && !selectedMemory
                 ? 'bg-[#f26522]/20 text-[#f26522] font-semibold border border-[#f26522]/40'
                 : 'text-[#a1a1aa] hover:text-white hover:bg-white/[0.06]'
             }`}
@@ -333,11 +333,12 @@ export function GraphFilterHeader({
               <ChevronRight size={12} className="text-[#71717a] shrink-0" />
               <button
                 onClick={() => {
+                  onSelectCustomer(activeCustomer);
                   onSelectUser(null);
                   onSelectMemory(null);
                 }}
                 className={`px-2 py-0.5 rounded transition-colors ${
-                  activeCustomer && !activeUser
+                  activeCustomer && !activeUser && !selectedMemory
                     ? 'bg-[#f26522]/20 text-[#f26522] font-semibold border border-[#f26522]/40'
                     : 'text-[#a1a1aa] hover:text-white hover:bg-white/[0.06]'
                 }`}
@@ -351,9 +352,19 @@ export function GraphFilterHeader({
           {activeUser && (
             <>
               <ChevronRight size={12} className="text-[#71717a] shrink-0" />
-              <span className="px-2 py-0.5 rounded bg-[#f26522]/15 text-[#f26522] font-semibold border border-[#f26522]/30">
+              <button
+                onClick={() => {
+                  onSelectUser(activeUser);
+                  onSelectMemory(null);
+                }}
+                className={`px-2 py-0.5 rounded transition-colors ${
+                  activeUser && !selectedMemory
+                    ? 'bg-[#f26522]/20 text-[#f26522] font-semibold border border-[#f26522]/40'
+                    : 'text-[#a1a1aa] hover:text-white hover:bg-white/[0.06]'
+                }`}
+              >
                 User ({activeUser.name})
-              </span>
+              </button>
             </>
           )}
 
@@ -361,9 +372,13 @@ export function GraphFilterHeader({
           {selectedMemory && (
             <>
               <ChevronRight size={12} className="text-[#71717a] shrink-0" />
-              <span className="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 font-semibold border border-amber-500/40 truncate max-w-[180px]">
-                {selectedMemory.id}
-              </span>
+              <button
+                onClick={() => onSelectMemory(selectedMemory)}
+                className="px-2 py-0.5 rounded bg-[#f26522]/20 text-[#f26522] font-semibold border border-[#f26522]/40 truncate max-w-[220px]"
+                title={`${selectedMemory.id}: ${selectedMemory.title}`}
+              >
+                {selectedMemory.id} · {selectedMemory.title}
+              </button>
             </>
           )}
         </div>

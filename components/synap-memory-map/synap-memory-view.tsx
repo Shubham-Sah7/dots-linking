@@ -72,6 +72,28 @@ export function SynapMemoryView() {
     setSelectedMemory(memory);
     if (memory) {
       setIsDetailPanelOpen(true);
+      // Synchronize ownership scope hierarchy: Client -> Customer -> User
+      if (memory.scopeType === 'user') {
+        for (const cust of SYNAP_CLIENT_DATA.customers) {
+          const u = cust.users.find((usr) => usr.id === memory.scopeId);
+          if (u) {
+            setActiveCustomer(cust);
+            setActiveUser(u);
+            break;
+          }
+        }
+      } else if (memory.scopeType === 'customer') {
+        const cust = SYNAP_CLIENT_DATA.customers.find((c) => c.id === memory.scopeId);
+        if (cust) {
+          setActiveCustomer(cust);
+          setActiveUser(null);
+        }
+      } else {
+        // Client-level memory
+        setActiveCustomer(null);
+        setActiveUser(null);
+      }
+
       if (memory.x !== undefined && memory.y !== undefined) {
         setCameraFocusTarget({
           x: memory.x,
@@ -84,15 +106,8 @@ export function SynapMemoryView() {
   }, []);
 
   const handleFocusMemory = useCallback((memory: MemoryItem) => {
-    if (memory.x !== undefined && memory.y !== undefined) {
-      setCameraFocusTarget({
-        x: memory.x,
-        y: memory.y,
-        zoom: 1.5,
-        t: Date.now(),
-      });
-    }
-  }, []);
+    handleSelectMemory(memory);
+  }, [handleSelectMemory]);
 
   // Zoom handlers
   const handleZoomIn = useCallback(() => {

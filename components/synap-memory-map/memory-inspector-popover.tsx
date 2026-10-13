@@ -36,9 +36,9 @@ export function MemoryInspectorPopover({
           <span
             className={`w-2 h-2 rounded-full ${
               isSuperseded
-                ? 'bg-amber-400'
+                ? 'bg-[#d97706]'
                 : memory.status === 'Active'
-                ? 'bg-emerald-400'
+                ? 'bg-white'
                 : 'bg-[#f26522]'
             }`}
           />
@@ -68,8 +68,8 @@ export function MemoryInspectorPopover({
           <span
             className={`px-2 py-0.5 rounded-[4px] text-[10px] font-bold uppercase tracking-wider ${
               isSuperseded
-                ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
-                : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                ? 'bg-[#d97706]/15 text-[#fbbf24] border border-[#d97706]/30'
+                : 'bg-white/10 text-white border border-white/20'
             }`}
           >
             {memory.status}
