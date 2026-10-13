@@ -27,9 +27,7 @@
 - **Migrations**: Use `npx prisma migrate dev` for schema changes
 
 ## Authentication
-- **Clerk**: We're using Clerk for authentication, including Google login and other social providers
-- **Configuration**: Clerk keys are in `.env` (`NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` and `CLERK_SECRET_KEY`)
-- **Integration**: Clerk is integrated with Next.js via `@clerk/nextjs` package
+- Standalone client application; external auth providers (Clerk) removed to ensure zero-config deployment.
 
 ## UI Components & Styling
 - **Shadcn/UI Components**: Always use Shadcn components for UI elements

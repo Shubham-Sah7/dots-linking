@@ -5,19 +5,18 @@ import { StageData } from './types';
 import { AGENT_COORDINATES } from './stages-data';
 
 interface Vertex {
-  baseR: number; // distance from cluster center
+  baseR: number;
   baseAngle: number;
   rNorm: number;
   freq: number;
   phase: number;
-  colorType: 'blue' | 'lime' | 'white';
+  colorType: 'orange' | 'warm' | 'white';
   radius: number;
   alpha: number;
 }
 
 interface ClusterModel {
   id: string;
-  name: string;
   label: string;
   shapeLobes: number;
   shapeSeed: number;
@@ -43,19 +42,16 @@ interface NetworkCanvasProps {
 
 const AGENT_ORDER = ['installer', 'dependencies', 'timeline', 'projects', 'reviewer', 'export'];
 
-// Connections matching the video topology
 const INTER_CLUSTER_CONNECTIONS = [
-  // Stage 0 triangle + Stage 1 full web
   { from: 'dependencies', to: 'installer', strands: 36, defaultColor: 'mixed' },
   { from: 'installer', to: 'reviewer', strands: 34, defaultColor: 'mixed' },
   { from: 'dependencies', to: 'timeline', strands: 34, defaultColor: 'mixed' },
-  // Core horizontal bridge
-  { from: 'dependencies', to: 'projects', strands: 44, defaultColor: 'blue', isThickBridge: true },
+  { from: 'dependencies', to: 'projects', strands: 44, defaultColor: 'orange', isThickBridge: true },
   { from: 'projects', to: 'reviewer', strands: 34, defaultColor: 'mixed' },
   { from: 'installer', to: 'projects', strands: 32, defaultColor: 'mixed' },
-  { from: 'timeline', to: 'export', strands: 32, defaultColor: 'blue' },
+  { from: 'timeline', to: 'export', strands: 32, defaultColor: 'orange' },
   { from: 'export', to: 'reviewer', strands: 34, defaultColor: 'mixed' },
-  { from: 'timeline', to: 'projects', strands: 30, defaultColor: 'blue' },
+  { from: 'timeline', to: 'projects', strands: 30, defaultColor: 'orange' },
   { from: 'installer', to: 'timeline', strands: 28, defaultColor: 'mixed' },
   { from: 'projects', to: 'export', strands: 32, defaultColor: 'mixed' },
 ];
@@ -68,7 +64,7 @@ export function NetworkCanvas({ currentStage, selectedAgent, onSelectAgent }: Ne
   const mouseRef = useRef<{ x: number; y: number; active: boolean }>({ x: -1000, y: -1000, active: false });
   const [hoveredAgent, setHoveredAgent] = useState<string | null>(null);
 
-  // Initialize organic fractal cluster models
+  // Initialize organic fractal cluster models (Maximem palette: orange, warm white, neutral)
   useEffect(() => {
     const clusterMap = new Map<string, ClusterModel>();
 
@@ -80,19 +76,15 @@ export function NetworkCanvas({ currentStage, selectedAgent, onSelectAgent }: Ne
 
       for (let i = 0; i < vertexCount; i++) {
         const theta = Math.random() * Math.PI * 2;
-        // Amoebic / organic multi-harmonic boundary
         const lobeMod = 1 + 0.22 * Math.sin(lobes * theta + shapeSeed) + 0.12 * Math.cos(3 * theta + shapeSeed * 1.4);
-        const rNorm = Math.pow(Math.random(), 0.65); // denser in center, wispier outer filaments
+        const rNorm = Math.pow(Math.random(), 0.65);
         const baseR = 48 * lobeMod;
 
-        // Color distribution
-        let colorType: 'blue' | 'lime' | 'white' = 'blue';
+        // Color distribution: Maximem brand
+        let colorType: 'orange' | 'warm' | 'white' = 'warm';
         const rand = Math.random();
-        if (rand < 0.32) {
-          colorType = 'lime';
-        } else if (rand > 0.88) {
-          colorType = 'white';
-        }
+        if (rand < 0.28) colorType = 'orange';
+        else if (rand > 0.85) colorType = 'white';
 
         vertices.push({
           baseR,
@@ -106,7 +98,6 @@ export function NetworkCanvas({ currentStage, selectedAgent, onSelectAgent }: Ne
         });
       }
 
-      // Sort some vertices by angle to create boundary contour
       const boundaryIndices = vertices
         .map((v, idx) => ({ idx, angle: v.baseAngle, rNorm: v.rNorm }))
         .filter((v) => v.rNorm > 0.75)
@@ -115,7 +106,6 @@ export function NetworkCanvas({ currentStage, selectedAgent, onSelectAgent }: Ne
 
       clusterMap.set(id, {
         id,
-        name: id,
         label: `agent / ${id}`,
         shapeLobes: lobes,
         shapeSeed,
@@ -126,18 +116,20 @@ export function NetworkCanvas({ currentStage, selectedAgent, onSelectAgent }: Ne
 
     clustersRef.current = clusterMap;
 
-    // Seed continuous traveling data packets along strands
+    // Seed data packets
     const packets: DataPacket[] = [];
     INTER_CLUSTER_CONNECTIONS.forEach((conn) => {
       const count = 4;
       for (let k = 0; k < count; k++) {
+        // Maximem: orange or warm-white packets
+        const isOrange = Math.random() < 0.45;
         packets.push({
           fromCluster: conn.from,
           toCluster: conn.to,
           strandIdx: Math.floor(Math.random() * conn.strands),
           progress: Math.random(),
           speed: 0.012 + Math.random() * 0.016,
-          color: Math.random() < 0.35 ? '#d4ff3f' : '#60a5fa',
+          color: isOrange ? '#F26522' : '#F4F4F5',
           size: 1.6 + Math.random() * 1.2,
         });
       }
@@ -164,12 +156,12 @@ export function NetworkCanvas({ currentStage, selectedAgent, onSelectAgent }: Ne
       ctx.save();
       ctx.scale(dpr, dpr);
 
-      // 1. Deep pure black background with subtle edge vignette
-      ctx.fillStyle = '#000000';
+      // 1. Deep Maximem background with subtle grid
+      ctx.fillStyle = '#1B1B19';
       ctx.fillRect(0, 0, width, height);
 
-      // Subtle ambient space grid
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.015)';
+      // Subtle space grid
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.018)';
       ctx.lineWidth = 1;
       const gridSize = 45;
       for (let x = 0; x < width; x += gridSize) {
@@ -185,8 +177,7 @@ export function NetworkCanvas({ currentStage, selectedAgent, onSelectAgent }: Ne
         ctx.stroke();
       }
 
-      // 2. Compute absolute pixel positions for each agent cluster
-      // Constrain cluster spread nicely within the canvas bounds
+      // 2. Agent positions
       const paddingX = Math.min(width * 0.08, 60);
       const paddingY = Math.min(height * 0.08, 40);
       const usableW = width - paddingX * 2;
@@ -201,13 +192,12 @@ export function NetworkCanvas({ currentStage, selectedAgent, onSelectAgent }: Ne
         clusterCenters[id] = { x: cx, y: cy, isActive };
       });
 
-      // 3. DRAW INTER-CLUSTER FILAMENTOUS FIBER BUNDLES (TENDONS)
+      // 3. INTER-CLUSTER FILAMENT FIBER BUNDLES (matching tweet video style)
       INTER_CLUSTER_CONNECTIONS.forEach((conn) => {
         const c1 = clusterCenters[conn.from];
         const c2 = clusterCenters[conn.to];
         if (!c1 || !c2) return;
 
-        // In Stage 0, only connections between active clusters are visible
         const isConnActive = c1.isActive && c2.isActive;
         if (!isConnActive && currentStage.index === 0) return;
 
@@ -220,7 +210,6 @@ export function NetworkCanvas({ currentStage, selectedAgent, onSelectAgent }: Ne
         const nx = normalX / len;
         const ny = normalY / len;
 
-        // Is this the highlighted vertical column in stage 4 (audio repair)?
         const isAudioRepairColumn =
           currentStage.id === 'audio-repair' &&
           ((conn.from === 'installer' && conn.to === 'projects') ||
@@ -228,6 +217,12 @@ export function NetworkCanvas({ currentStage, selectedAgent, onSelectAgent }: Ne
             (conn.from === 'installer' && conn.to === 'reviewer'));
 
         const isHorizontalBridge = conn.isThickBridge && currentStage.index >= 1;
+
+        const isAgentFocused =
+          selectedAgent &&
+          (conn.from === selectedAgent || conn.to === selectedAgent) ||
+          hoveredAgent &&
+          (conn.from === hoveredAgent || conn.to === hoveredAgent);
 
         for (let s = 0; s < strandsCount; s++) {
           const spreadFactor = (s - strandsCount / 2) * 1.15;
@@ -239,30 +234,22 @@ export function NetworkCanvas({ currentStage, selectedAgent, onSelectAgent }: Ne
           ctx.moveTo(c1.x + nx * spreadFactor * 0.7, c1.y + ny * spreadFactor * 0.7);
           ctx.quadraticCurveTo(ctrlX, ctrlY, c2.x + nx * spreadFactor * 0.7, c2.y + ny * spreadFactor * 0.7);
 
-          if (isAudioRepairColumn) {
-            ctx.strokeStyle =
-              s % 3 === 0
-                ? 'rgba(212, 255, 63, 0.45)'
-                : 'rgba(96, 165, 250, 0.38)';
+          if (isAgentFocused) {
+            // Selected: orange highlight fiber strands
+            ctx.strokeStyle = s % 3 === 0 ? 'rgba(242, 101, 34, 0.55)' : 'rgba(242, 101, 34, 0.22)';
+            ctx.lineWidth = s % 4 === 0 ? 1.4 : 0.75;
+          } else if (isAudioRepairColumn) {
+            ctx.strokeStyle = s % 3 === 0 ? 'rgba(242, 101, 34, 0.50)' : 'rgba(244, 244, 245, 0.22)';
             ctx.lineWidth = s % 4 === 0 ? 1.4 : 0.8;
           } else if (isHorizontalBridge) {
-            ctx.strokeStyle =
-              s % 4 === 0
-                ? 'rgba(212, 255, 63, 0.28)'
-                : 'rgba(96, 165, 250, 0.35)';
+            ctx.strokeStyle = s % 4 === 0 ? 'rgba(242, 101, 34, 0.32)' : 'rgba(244, 244, 245, 0.18)';
             ctx.lineWidth = s % 5 === 0 ? 1.4 : 0.85;
           } else if (isConnActive) {
             if (currentStage.index === 0) {
-              ctx.strokeStyle =
-                s % 3 === 0
-                  ? 'rgba(212, 255, 63, 0.22)'
-                  : 'rgba(147, 197, 253, 0.22)';
+              ctx.strokeStyle = s % 3 === 0 ? 'rgba(242, 101, 34, 0.28)' : 'rgba(244, 244, 245, 0.18)';
               ctx.lineWidth = 0.8;
             } else {
-              ctx.strokeStyle =
-                s % 4 === 0
-                  ? 'rgba(255, 255, 255, 0.26)'
-                  : 'rgba(96, 165, 250, 0.18)';
+              ctx.strokeStyle = s % 4 === 0 ? 'rgba(244, 244, 245, 0.24)' : 'rgba(242, 101, 34, 0.14)';
               ctx.lineWidth = 0.75;
             }
           } else {
@@ -274,7 +261,7 @@ export function NetworkCanvas({ currentStage, selectedAgent, onSelectAgent }: Ne
         }
       });
 
-      // 4. DRAW CONTINUOUS TRAVELING PHOTON PULSES
+      // 4. TRAVELING PHOTON PULSES along strands
       packetsRef.current.forEach((pkt) => {
         pkt.progress += pkt.speed;
         if (pkt.progress > 1) {
@@ -289,16 +276,15 @@ export function NetworkCanvas({ currentStage, selectedAgent, onSelectAgent }: Ne
 
         const normalX = -(c2.y - c1.y);
         const normalY = c2.x - c1.x;
-        const len = Math.hypot(normalX, normalY) || 1;
+        const len2 = Math.hypot(normalX, normalY) || 1;
         const spreadOffset = (pkt.strandIdx - 16) * 1.1;
-        const nx = (normalX / len) * spreadOffset * 0.7;
-        const ny = (normalY / len) * spreadOffset * 0.7;
+        const nx = (normalX / len2) * spreadOffset * 0.7;
+        const ny = (normalY / len2) * spreadOffset * 0.7;
 
         const t = pkt.progress;
         const midX = (c1.x + c2.x) / 2 + nx * 1.3;
         const midY = (c1.y + c2.y) / 2 + ny * 1.3;
 
-        // Quadratic bezier position
         const p0x = c1.x + nx;
         const p0y = c1.y + ny;
         const p1x = midX;
@@ -309,7 +295,6 @@ export function NetworkCanvas({ currentStage, selectedAgent, onSelectAgent }: Ne
         const px = (1 - t) * (1 - t) * p0x + 2 * (1 - t) * t * p1x + t * t * p2x;
         const py = (1 - t) * (1 - t) * p0y + 2 * (1 - t) * t * p1y + t * t * p2y;
 
-        // Draw glowing photon packet
         ctx.save();
         ctx.shadowColor = pkt.color;
         ctx.shadowBlur = 6;
@@ -318,24 +303,23 @@ export function NetworkCanvas({ currentStage, selectedAgent, onSelectAgent }: Ne
         ctx.arc(px, py, pkt.size, 0, Math.PI * 2);
         ctx.fill();
 
-        // Subtle motion trail
+        // Motion trail
         const trailT = Math.max(0, t - 0.04);
         const tx = (1 - trailT) * (1 - trailT) * p0x + 2 * (1 - trailT) * trailT * p1x + trailT * trailT * p2x;
         const ty = (1 - trailT) * (1 - trailT) * p0y + 2 * (1 - trailT) * trailT * p1y + trailT * trailT * p2y;
-        ctx.fillStyle = pkt.color === '#d4ff3f' ? 'rgba(212, 255, 63, 0.4)' : 'rgba(96, 165, 250, 0.4)';
+        ctx.fillStyle = pkt.color === '#F26522' ? 'rgba(242, 101, 34, 0.4)' : 'rgba(244, 244, 245, 0.35)';
         ctx.beginPath();
         ctx.arc(tx, ty, pkt.size * 0.65, 0, Math.PI * 2);
         ctx.fill();
         ctx.restore();
       });
 
-      // 5. DRAW ORGANIC FRACTAL AGENT CLUSTERS
+      // 5. ORGANIC FRACTAL AGENT CLUSTERS (amoebic particle cloud style)
       AGENT_ORDER.forEach((id, cIdx) => {
         const center = clusterCenters[id];
         const cluster = clustersRef.current.get(id);
         if (!center || !cluster) return;
 
-        // If stage 0 and cluster is dormant (projects/export), don't draw
         if (!center.isActive && currentStage.index === 0) return;
 
         const isHovered = hoveredAgent === id;
@@ -343,18 +327,21 @@ export function NetworkCanvas({ currentStage, selectedAgent, onSelectAgent }: Ne
         const isActive = center.isActive;
         const isApproved = currentStage.id === 'approved';
 
-        // Stage 4 color specialization: projects is pure lime green!
+        // Stage 4 audio repair: projects cluster goes full orange
         const isAudioSpecial = currentStage.id === 'audio-repair' && (id === 'projects' || id === 'reviewer');
 
         // Ambient radial glow
-        const glowRadius = isHovered || isSelected ? 80 : 64;
+        const glowRadius = isHovered || isSelected ? 82 : 66;
         const grad = ctx.createRadialGradient(center.x, center.y, 0, center.x, center.y, glowRadius);
-        if (isAudioSpecial && id === 'projects') {
-          grad.addColorStop(0, 'rgba(212, 255, 63, 0.28)');
-          grad.addColorStop(0.7, 'rgba(212, 255, 63, 0.08)');
+        if (isSelected) {
+          grad.addColorStop(0, 'rgba(242, 101, 34, 0.32)');
+          grad.addColorStop(0.7, 'rgba(242, 101, 34, 0.10)');
+        } else if (isAudioSpecial && id === 'projects') {
+          grad.addColorStop(0, 'rgba(242, 101, 34, 0.30)');
+          grad.addColorStop(0.7, 'rgba(242, 101, 34, 0.09)');
         } else if (isActive) {
-          grad.addColorStop(0, 'rgba(96, 165, 250, 0.24)');
-          grad.addColorStop(0.7, 'rgba(59, 130, 246, 0.07)');
+          grad.addColorStop(0, 'rgba(242, 101, 34, 0.18)');
+          grad.addColorStop(0.7, 'rgba(242, 101, 34, 0.05)');
         } else {
           grad.addColorStop(0, 'rgba(255, 255, 255, 0.03)');
         }
@@ -367,7 +354,7 @@ export function NetworkCanvas({ currentStage, selectedAgent, onSelectAgent }: Ne
         // Cluster breathing scale
         const clusterBreathing = 1 + 0.05 * Math.sin(time * 1.1 + cIdx * 1.4);
 
-        // Compute instantaneous vertex positions
+        // Compute vertex positions
         const computedPts: { x: number; y: number; color: string; radius: number; alpha: number }[] = [];
 
         cluster.vertices.forEach((v) => {
@@ -381,28 +368,22 @@ export function NetworkCanvas({ currentStage, selectedAgent, onSelectAgent }: Ne
           px += Math.sin(time * 1.3 + v.phase) * 1.5;
           py += Math.cos(time * 1.1 + v.phase) * 1.5;
 
-          // Color calculation
-          let ptColor = '#60a5fa';
-          if (isAudioSpecial && id === 'projects') {
-            ptColor = v.colorType === 'lime' || Math.random() < 0.75 ? '#d4ff3f' : '#bef264';
+          // Maximem color mapping: orange / warm white / neutral white
+          let ptColor = '#F4F4F5'; // default: warm white
+          if (isSelected || (isAudioSpecial && id === 'projects')) {
+            ptColor = v.colorType === 'orange' || Math.random() < 0.65 ? '#F26522' : '#F4F4F5';
           } else if (currentStage.index === 0) {
-            ptColor = v.colorType === 'lime' ? '#d4ff3f' : '#60a5fa';
+            ptColor = v.colorType === 'orange' ? '#F26522' : '#E8E8E6';
           } else if (isApproved) {
-            ptColor = v.colorType === 'white' ? '#ffffff' : '#60a5fa';
+            ptColor = v.colorType === 'white' ? '#ffffff' : '#F4F4F5';
           } else {
-            ptColor = v.colorType === 'lime' && Math.random() < 0.2 ? '#d4ff3f' : '#60a5fa';
+            ptColor = v.colorType === 'orange' && Math.random() < 0.25 ? '#F26522' : '#D4D4D8';
           }
 
-          computedPts.push({
-            x: px,
-            y: py,
-            color: ptColor,
-            radius: v.radius,
-            alpha: v.alpha,
-          });
+          computedPts.push({ x: px, y: py, color: ptColor, radius: v.radius, alpha: v.alpha });
         });
 
-        // Intra-cluster proximity spiderweb lines (Delaunay-like tessellation)
+        // Intra-cluster spiderweb / proximity links (Delaunay-like)
         const maxLinkDist = 28;
         const ptsCount = computedPts.length;
 
@@ -417,12 +398,12 @@ export function NetworkCanvas({ currentStage, selectedAgent, onSelectAgent }: Ne
             if (dist < maxLinkDist) {
               const linkAlpha = (1 - dist / maxLinkDist) * 0.42;
 
-              if (isAudioSpecial && id === 'projects') {
-                ctx.strokeStyle = `rgba(212, 255, 63, ${linkAlpha})`;
-              } else if (p1.color === '#d4ff3f' || p2.color === '#d4ff3f') {
-                ctx.strokeStyle = `rgba(212, 255, 63, ${linkAlpha * 0.8})`;
+              if (isSelected || (isAudioSpecial && id === 'projects')) {
+                ctx.strokeStyle = `rgba(242, 101, 34, ${linkAlpha})`;
+              } else if (p1.color === '#F26522' || p2.color === '#F26522') {
+                ctx.strokeStyle = `rgba(242, 101, 34, ${linkAlpha * 0.8})`;
               } else {
-                ctx.strokeStyle = `rgba(96, 165, 250, ${linkAlpha})`;
+                ctx.strokeStyle = `rgba(212, 212, 216, ${linkAlpha})`;
               }
 
               ctx.lineWidth = 0.65;
@@ -434,7 +415,7 @@ export function NetworkCanvas({ currentStage, selectedAgent, onSelectAgent }: Ne
           }
         }
 
-        // Draw outer contour / hull between peripheral vertices
+        // Outer contour / hull
         if (cluster.boundaryIndices.length > 3) {
           ctx.beginPath();
           const firstIdx = cluster.boundaryIndices[0];
@@ -445,80 +426,66 @@ export function NetworkCanvas({ currentStage, selectedAgent, onSelectAgent }: Ne
           }
           ctx.closePath();
           ctx.strokeStyle =
-            isAudioSpecial && id === 'projects'
-              ? 'rgba(212, 255, 63, 0.35)'
-              : 'rgba(96, 165, 250, 0.3)';
+            isSelected || (isAudioSpecial && id === 'projects')
+              ? 'rgba(242, 101, 34, 0.40)'
+              : 'rgba(212, 212, 216, 0.20)';
           ctx.lineWidth = 0.85;
           ctx.stroke();
         }
 
-        // Draw particle vertices
+        // Draw individual particle vertices
         computedPts.forEach((p) => {
           ctx.fillStyle = p.color;
+          ctx.globalAlpha = p.alpha;
           ctx.beginPath();
           ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
           ctx.fill();
         });
+        ctx.globalAlpha = 1;
 
-        // 6. DRAW AGENT TITLE & SUBTITLE OVER CLUSTER (EXACT MATCH TO VIDEO)
-        // Position labels cleanly next to or inside cluster
+        // 6. AGENT TITLE & SUBTITLE LABELS
         ctx.save();
         ctx.font = 'bold 12px ui-monospace, SFMono-Regular, Menlo, Monaco, monospace';
         const labelText = `agent / ${id}`;
         const subtitleText = currentStage.agentSubtitles[id] || 'active';
 
-        // Subtitle position offset depending on cluster placement
         let textX = center.x + 18;
         let textY = center.y + 6;
 
-        if (id === 'installer') {
-          textX = center.x + 24;
-          textY = center.y + 8;
-        } else if (id === 'dependencies') {
-          textX = center.x + 12;
-          textY = center.y - 12;
-        } else if (id === 'timeline') {
-          textX = center.x + 16;
-          textY = center.y + 8;
-        } else if (id === 'projects') {
-          textX = center.x + 10;
-          textY = center.y - 8;
-        } else if (id === 'reviewer') {
-          textX = center.x + 18;
-          textY = center.y + 12;
-        } else if (id === 'export') {
-          textX = center.x + 18;
-          textY = center.y + 10;
-        }
+        if (id === 'installer') { textX = center.x + 24; textY = center.y + 8; }
+        else if (id === 'dependencies') { textX = center.x + 12; textY = center.y - 12; }
+        else if (id === 'timeline') { textX = center.x + 16; textY = center.y + 8; }
+        else if (id === 'projects') { textX = center.x + 10; textY = center.y - 8; }
+        else if (id === 'reviewer') { textX = center.x + 18; textY = center.y + 12; }
+        else if (id === 'export') { textX = center.x + 18; textY = center.y + 10; }
 
-        // Agent title: crisp pure white bold
-        ctx.fillStyle = '#ffffff';
-        ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
-        ctx.shadowBlur = 4;
+        // Crisp warm white agent label
+        ctx.fillStyle = '#F4F4F5';
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.95)';
+        ctx.shadowBlur = 5;
         ctx.fillText(labelText, textX, textY);
 
-        // Verified indicator in Stage 7
+        // Approved checkmark
         if (isApproved) {
-          ctx.fillStyle = '#d4ff3f';
+          ctx.fillStyle = '#F26522';
           ctx.font = 'bold 11px ui-monospace, monospace';
           ctx.fillText(' ✓', textX + ctx.measureText(labelText).width, textY);
         }
 
-        // Agent subtitle: crisp slate / chartreuse if active
+        // Subtitle
         ctx.font = '10px ui-monospace, SFMono-Regular, Menlo, Monaco, monospace';
-        ctx.fillStyle = isAudioSpecial && id === 'projects' ? '#d4ff3f' : '#94a3b8';
+        ctx.fillStyle =
+          isSelected || (isAudioSpecial && id === 'projects') ? '#F26522' : '#A1A1AA';
         ctx.fillText(subtitleText, textX, textY + 13);
         ctx.restore();
       });
 
-      // 7. DRAW TACTICAL STREAM CALLOUT LABELS & ANGLED LEADER LINES
-      // In the video, these are pure crisp monospace text with angled pointer lines (NO background pill)
+      // 7. STREAM CALLOUT ANNOTATIONS
       currentStage.callouts.forEach((callout) => {
         const fromPos = clusterCenters[callout.from];
         const toPos = clusterCenters[callout.to];
         if (!fromPos || !toPos) return;
 
-        // Skip callouts referring to dormant clusters in stage 0
         if ((!fromPos.isActive || !toPos.isActive) && currentStage.index === 0) return;
 
         const targetX = (fromPos.x + toPos.x) / 2;
@@ -534,8 +501,8 @@ export function NetworkCanvas({ currentStage, selectedAgent, onSelectAgent }: Ne
 
         ctx.save();
 
-        // Draw angled leader line
-        ctx.strokeStyle = 'rgba(212, 255, 63, 0.65)';
+        // Angled leader line — orange/warm white
+        ctx.strokeStyle = 'rgba(242, 101, 34, 0.65)';
         ctx.lineWidth = 0.9;
         ctx.beginPath();
         ctx.moveTo(calloutX, calloutY + 2);
@@ -544,17 +511,17 @@ export function NetworkCanvas({ currentStage, selectedAgent, onSelectAgent }: Ne
         ctx.lineTo(targetX, targetY);
         ctx.stroke();
 
-        // Terminal tick/diamond at target intersection
-        ctx.fillStyle = '#d4ff3f';
+        // Terminal tick — orange dot
+        ctx.fillStyle = '#F26522';
         ctx.beginPath();
-        ctx.arc(targetX, targetY, 1.8, 0, Math.PI * 2);
+        ctx.arc(targetX, targetY, 2.0, 0, Math.PI * 2);
         ctx.fill();
 
-        // Render clean monospace text (no box/pill, matching video)
+        // Callout text — warm white (not lime/orange, for readability)
         ctx.font = '10.5px ui-monospace, SFMono-Regular, Menlo, Monaco, monospace';
-        ctx.shadowColor = 'rgba(0, 0, 0, 0.9)';
-        ctx.shadowBlur = 4;
-        ctx.fillStyle = '#d4ff3f';
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.95)';
+        ctx.shadowBlur = 5;
+        ctx.fillStyle = '#F4F4F5';
         ctx.fillText(callout.text, calloutX, calloutY - 2);
 
         ctx.restore();
@@ -568,13 +535,12 @@ export function NetworkCanvas({ currentStage, selectedAgent, onSelectAgent }: Ne
     return () => cancelAnimationFrame(animId);
   }, [currentStage, hoveredAgent, selectedAgent]);
 
-  // Handle Canvas Resizing
+  // Canvas Resizing
   useEffect(() => {
     const handleResize = () => {
       const container = containerRef.current;
       const canvas = canvasRef.current;
       if (!container || !canvas) return;
-
       const dpr = window.devicePixelRatio || 1;
       const rect = container.getBoundingClientRect();
       canvas.width = rect.width * dpr;
@@ -586,7 +552,7 @@ export function NetworkCanvas({ currentStage, selectedAgent, onSelectAgent }: Ne
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Mouse interaction handlers
+  // Mouse handlers
   const handleMouseMove = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -596,7 +562,6 @@ export function NetworkCanvas({ currentStage, selectedAgent, onSelectAgent }: Ne
 
     mouseRef.current = { x, y, active: true };
 
-    // Check cluster hit testing
     const usableW = rect.width - Math.min(rect.width * 0.08, 60) * 2;
     const usableH = rect.height - Math.min(rect.height * 0.08, 40) * 2;
     const padX = Math.min(rect.width * 0.08, 60);
@@ -608,9 +573,7 @@ export function NetworkCanvas({ currentStage, selectedAgent, onSelectAgent }: Ne
       const cx = padX + coords.x * usableW;
       const cy = padY + coords.y * usableH;
       const dist = Math.hypot(x - cx, y - cy);
-      if (dist < 50) {
-        foundAgent = id;
-      }
+      if (dist < 55) foundAgent = id;
     });
 
     setHoveredAgent(foundAgent);
@@ -632,7 +595,7 @@ export function NetworkCanvas({ currentStage, selectedAgent, onSelectAgent }: Ne
   return (
     <div
       ref={containerRef}
-      className="relative w-full h-[420px] sm:h-[480px] lg:h-[540px] bg-[#000000] overflow-hidden select-none cursor-crosshair"
+      className="relative w-full h-[420px] sm:h-[480px] lg:h-[540px] bg-[#1B1B19] overflow-hidden select-none cursor-crosshair"
     >
       <canvas
         ref={canvasRef}

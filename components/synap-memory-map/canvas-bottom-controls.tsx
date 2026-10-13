@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Minus, Plus, Maximize, PanelRightClose, PanelRightOpen } from 'lucide-react';
+import { Minus, Plus, Maximize, PanelRightClose, PanelRightOpen, Sparkles } from 'lucide-react';
 
 interface CanvasBottomControlsProps {
   zoomLevel: number;
@@ -11,6 +11,9 @@ interface CanvasBottomControlsProps {
   onOpenGuide?: () => void;
   isDetailPanelOpen?: boolean;
   onToggleDetailPanel?: () => void;
+  patternMode?: 'integrated' | 'reference';
+  onTogglePatternMode?: () => void;
+  onOpenPatternModal?: () => void;
 }
 
 export function CanvasBottomControls({
@@ -21,6 +24,9 @@ export function CanvasBottomControls({
   onOpenGuide,
   isDetailPanelOpen,
   onToggleDetailPanel,
+  patternMode = 'integrated',
+  onTogglePatternMode,
+  onOpenPatternModal,
 }: CanvasBottomControlsProps) {
   return (
     <div className="absolute bottom-4 inset-x-6 z-20 flex flex-wrap items-center justify-between pointer-events-none font-sans select-none gap-2">
@@ -51,10 +57,64 @@ export function CanvasBottomControls({
           <span className="w-3 h-2 rounded border border-[#f26522]/50 bg-[#f26522]/10" />
           <span className="text-[11px]">Non-Overlapping Scopes</span>
         </div>
+
+        {/* Dotted Scope Silhouette */}
+        <div className="flex items-center gap-1.5 border-l border-white/[0.08] pl-3">
+          <span className="flex items-center gap-0.5">
+            <span className="size-1 rounded-full bg-white/60" />
+            <span className="size-1 rounded-full bg-[#f26522]" />
+            <span className="size-1 rounded-full bg-white/60" />
+          </span>
+          <span className="text-[11px]">Dotted Silhouette</span>
+        </div>
       </div>
 
-      {/* Right Zoom Controls */}
+      {/* Right Controls */}
       <div className="pointer-events-auto bg-[#141413]/90 backdrop-blur-md px-2.5 py-1.5 border border-white/[0.09] rounded-xl text-xs text-white flex items-center gap-1.5 font-mono shadow-lg">
+        {onTogglePatternMode && (
+          <>
+            <button
+              id="toggle-pattern-mode-btn"
+              onClick={onTogglePatternMode}
+              title={
+                patternMode === 'reference'
+                  ? 'Switch back to Maximem Brand Layer'
+                  : 'Switch to Reference B&W Dotted Silhouette'
+              }
+              className={`px-2.5 py-1 text-[11px] rounded-lg transition-all flex items-center gap-1.5 font-semibold ${
+                patternMode === 'reference'
+                  ? 'bg-white text-black shadow-md'
+                  : 'bg-white/[0.05] hover:bg-white/[0.1] text-white/80 hover:text-white border border-white/[0.08]'
+              }`}
+            >
+              <span
+                className={`size-1.5 rounded-full ${
+                  patternMode === 'reference' ? 'bg-black' : 'bg-[#f26522]'
+                }`}
+              />
+              <span>{patternMode === 'reference' ? 'Reference B&W' : 'Maximem Map'}</span>
+            </button>
+
+            <div className="w-[1px] h-3.5 bg-white/[0.12] mx-0.5" />
+          </>
+        )}
+
+        {onOpenPatternModal && (
+          <>
+            <button
+              id="open-dotted-pattern-modal-btn"
+              onClick={onOpenPatternModal}
+              title="Inspect Reference Dotted Pattern (Customizable Spacing, Size & SVG Export)"
+              className="px-2.5 py-1 text-[11px] rounded-lg hover:text-[#f26522] hover:bg-[#f26522]/10 transition-colors flex items-center gap-1.5 text-white/80 font-semibold border border-white/[0.08] bg-white/[0.03]"
+            >
+              <Sparkles size={12} className="text-[#f26522]" />
+              <span>Dot Pattern</span>
+            </button>
+
+            <div className="w-[1px] h-3.5 bg-white/[0.12] mx-0.5" />
+          </>
+        )}
+
         <button
           onClick={onZoomOut}
           title="Zoom Out"
@@ -78,8 +138,9 @@ export function CanvasBottomControls({
         <div className="w-[1px] h-3.5 bg-white/[0.12] mx-1" />
 
         <button
+          id="fit-view-bottom-btn"
           onClick={onResetZoom}
-          title="Fit Canvas to Overview (88% viewport)"
+          title="Fit Canvas to Overview"
           className="px-2 py-0.5 text-[11px] hover:text-[#f26522] hover:bg-white/[0.08] rounded-lg transition-colors flex items-center gap-1 text-[#f26522] font-semibold"
         >
           <Maximize size={11} />
@@ -90,6 +151,7 @@ export function CanvasBottomControls({
           <>
             <div className="w-[1px] h-3.5 bg-white/[0.12] mx-1" />
             <button
+              id="toggle-panel-bottom-btn"
               onClick={onToggleDetailPanel}
               title={isDetailPanelOpen ? 'Collapse side panel' : 'Expand side panel'}
               className="px-2 py-0.5 text-[11px] hover:text-white hover:bg-white/[0.08] rounded-lg transition-colors flex items-center gap-1.5 text-white/80 font-semibold"

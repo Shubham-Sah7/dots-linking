@@ -118,7 +118,7 @@ export function RescueDashboardView() {
   }, [handlePlayPause, handlePrevStage, handleNextStage, handleReset]);
 
   return (
-    <div className="min-h-screen w-full bg-[#03060a] text-white font-mono flex flex-col justify-between selection:bg-[#d4ff3f] selection:text-black">
+    <div className="min-h-screen w-full bg-[#1B1B19] text-[#F4F4F5] font-mono flex flex-col justify-between selection:bg-[#F26522] selection:text-white">
       {/* 1. Header Bar: Meta & 8 Pipeline Tabs */}
       <HeaderBar currentStage={currentStage} onSelectStage={handleSelectStage} />
 

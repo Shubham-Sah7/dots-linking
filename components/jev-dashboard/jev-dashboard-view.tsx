@@ -118,7 +118,7 @@ export function JevDashboardView() {
   }, [handlePlayPause, handlePrevStage, handleNextStage, handleReset]);
 
   return (
-    <div className="min-h-screen w-full bg-[#000000] text-white font-mono flex flex-col justify-between selection:bg-[#38bdf8] selection:text-black">
+    <div className="min-h-screen w-full bg-[#1B1B19] text-white flex flex-col justify-between selection:bg-[#F26522]/30 selection:text-white">
       {/* 1. Header Bar: Title, 4 Stat Columns, 5 Tabs */}
       <HeaderBar currentStage={currentStage} onSelectStage={handleSelectStage} />
 

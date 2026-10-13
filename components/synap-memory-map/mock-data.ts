@@ -33,7 +33,7 @@ export const SYNAP_CLIENT_DATA: ClientScopeData = {
   bounds: {
     x: 30,
     y: 30,
-    width: 1390,
+    width: 1380,
     height: 650,
   },
   clientLevelMemories: [
@@ -53,8 +53,8 @@ export const SYNAP_CLIENT_DATA: ClientScopeData = {
       createdAt: '2026-01-10 08:00',
       documentRef: 'DOC-SEC-POL-01',
       connectedEntityIds: [],
-      x: 180,
-      y: 125,
+      x: 160,
+      y: 115,
       relationships: [
         {
           id: 'rel-cl-1',
@@ -81,8 +81,8 @@ export const SYNAP_CLIENT_DATA: ClientScopeData = {
       createdAt: '2026-02-15 11:30',
       documentRef: 'RFC-7636-ENFORCED',
       connectedEntityIds: [],
-      x: 530,
-      y: 125,
+      x: 440,
+      y: 115,
       relationships: [],
     },
     {
@@ -101,8 +101,8 @@ export const SYNAP_CLIENT_DATA: ClientScopeData = {
       createdAt: '2026-01-01 00:00',
       documentRef: 'SLA-MASTER-2026',
       connectedEntityIds: [],
-      x: 880,
-      y: 125,
+      x: 730,
+      y: 115,
       relationships: [
         {
           id: 'rel-cl-2',
@@ -130,8 +130,8 @@ export const SYNAP_CLIENT_DATA: ClientScopeData = {
       supersededBy: 'MEM-CL-01',
       documentRef: 'MIGRATION-V2-SCOPE',
       connectedEntityIds: [],
-      x: 1220,
-      y: 125,
+      x: 1010,
+      y: 115,
       relationships: [
         {
           id: 'rel-cl-3',

@@ -21,7 +21,7 @@ export default function SynapDedicatedPage() {
           </div>
           <span className="font-bold text-white tracking-tight">Maximem</span>
           <span className="px-2 py-0.5 rounded-[5px] text-[10px] font-mono uppercase bg-[#f26522]/15 text-[#f26522] border border-[#f26522]/30 font-semibold">
-            MEMORY MAP
+            MEMORY EXPLORER
           </span>
         </div>
 
@@ -30,7 +30,7 @@ export default function SynapDedicatedPage() {
           className="flex items-center gap-1.5 px-3 py-1.5 bg-[#1a1a18] hover:bg-[#222220] text-[#d4d4d8] hover:text-[#f26522] border border-white/[0.09] rounded-[8px] transition-colors text-xs font-medium"
         >
           <Terminal size={13} />
-          <span>6-Agent Rescue Dashboard</span>
+          <span>Legacy Recovery</span>
         </Link>
       </div>
 

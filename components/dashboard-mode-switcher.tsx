@@ -41,7 +41,7 @@ export function DashboardModeSwitcher({
       {/* Mode Switcher Pill with 3 Options */}
       <div className="flex items-center gap-2">
         <div className="flex items-center bg-[#1a1a18] border border-white/[0.09] rounded-[10px] p-1 shadow-sm">
-          {/* Option 1: 6-Agent Rescue */}
+          {/* Option 1: Legacy Recovery */}
           <button
             onClick={() => onModeChange('rescue')}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[7px] text-xs font-sans transition-all duration-200 cursor-pointer ${
@@ -51,10 +51,10 @@ export function DashboardModeSwitcher({
             }`}
           >
             <Terminal size={13} />
-            <span>6-Agent Software Rescue</span>
+            <span>Legacy Recovery</span>
           </button>
 
-          {/* Option 2: Maximem Memory Map */}
+          {/* Option 2: Memory Explorer */}
           <button
             onClick={() => onModeChange('synap')}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[7px] text-xs font-sans transition-all duration-200 cursor-pointer ${
@@ -64,20 +64,20 @@ export function DashboardModeSwitcher({
             }`}
           >
             <Network size={13} />
-            <span>Maximem Memory Map</span>
+            <span>Memory Explorer</span>
           </button>
 
-          {/* Option 3: Sonnet 5.5 + Jev */}
+          {/* Option 3: AI Code Optimization */}
           <button
             onClick={() => onModeChange('jev')}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[7px] text-xs font-sans transition-all duration-200 cursor-pointer ${
               currentMode === 'jev'
-                ? 'bg-[#38bdf8] text-black font-semibold shadow-[0px_2px_10px_rgba(56,189,248,0.4)]'
+                ? 'bg-[#f26522] text-white font-semibold shadow-[0px_2px_10px_rgba(242,101,34,0.3)]'
                 : 'text-[#a1a1aa] hover:text-white'
             }`}
           >
             <GitPullRequest size={13} />
-            <span>Sonnet 5.5 + Jev (15k Issues)</span>
+            <span>AI Code Optimization</span>
           </button>
         </div>
       </div>

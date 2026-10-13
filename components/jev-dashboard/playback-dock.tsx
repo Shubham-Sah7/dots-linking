@@ -62,20 +62,20 @@ export function PlaybackDock({
   const progressPercent = Math.min(100, Math.max(0, (currentTime / duration) * 100));
 
   return (
-    <footer className="w-full bg-[#03060a] border-t border-[#141b26] p-2.5 sm:px-6 select-none font-mono">
+    <footer className="w-full bg-[#141413] border-t border-white/[0.08] p-2.5 sm:px-6 select-none font-mono">
       {/* Top Status & Timestamp Bar */}
-      <div className="flex items-center justify-between text-[11px] text-[#94a3b8] mb-2 px-1">
+      <div className="flex items-center justify-between text-[11px] text-[#a1a1aa] mb-2 px-1">
         <div className="flex items-center gap-3">
           <span className="text-white font-bold tracking-wider">{formatTime(currentTime)}</span>
-          <span className="text-[#64748b]">/</span>
-          <span className="text-[#64748b]">{formatTime(duration)}</span>
+          <span className="text-[#71717a]">/</span>
+          <span className="text-[#71717a]">{formatTime(duration)}</span>
 
-          <span className="px-2 py-0.5 rounded-[3px] text-[10px] font-bold tracking-wider uppercase bg-[#38bdf8]/15 text-[#38bdf8] border border-[#38bdf8]/40">
+          <span className="px-2 py-0.5 rounded-[4px] text-[10px] font-bold tracking-wider uppercase bg-[#F26522]/15 text-[#F26522] border border-[#F26522]/30">
             STAGE {currentStage.index + 1}/5: {currentStage.label}
           </span>
         </div>
 
-        <div className="hidden sm:flex items-center gap-4 text-[10px] text-[#64748b]">
+        <div className="hidden sm:flex items-center gap-4 text-[10px] text-[#71717a]">
           <span>SPACE: PLAY/PAUSE</span>
           <span>←/→: STEP</span>
         </div>
@@ -89,13 +89,13 @@ export function PlaybackDock({
           const ratio = Math.max(0, Math.min(1, clickX / rect.width));
           onSeek(ratio * duration);
         }}
-        className="relative w-full h-2.5 bg-[#141d2b] rounded-full overflow-hidden cursor-pointer group mb-2.5"
+        className="relative w-full h-2 bg-[#222220] border border-white/[0.06] rounded-full overflow-hidden cursor-pointer group mb-2.5"
       >
         <div
-          className="h-full bg-gradient-to-r from-[#38bdf8] to-[#ff2d55] transition-all duration-75 relative"
+          className="h-full bg-[#F26522] transition-all duration-75 relative rounded-full"
           style={{ width: `${progressPercent}%` }}
         >
-          <div className="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 bg-white rounded-full shadow-[0_0_8px_#38bdf8] opacity-0 group-hover:opacity-100 transition-opacity" />
+          <div className="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 bg-white border border-[#F26522] rounded-full shadow-[0_1px_6px_rgba(242,101,34,0.4)] opacity-0 group-hover:opacity-100 transition-opacity" />
         </div>
       </div>
 
@@ -106,7 +106,7 @@ export function PlaybackDock({
           <button
             onClick={onReset}
             title="Reset to Start (R)"
-            className="p-1.5 rounded text-[#94a3b8] hover:text-white hover:bg-[#111827] transition-colors cursor-pointer"
+            className="p-1.5 rounded-[6px] text-[#a1a1aa] hover:text-white hover:bg-white/[0.06] transition-colors cursor-pointer"
           >
             <RotateCcw size={14} />
           </button>
@@ -114,17 +114,17 @@ export function PlaybackDock({
           <button
             onClick={onPrevStage}
             title="Previous Stage (←)"
-            className="p-1.5 rounded text-[#94a3b8] hover:text-white hover:bg-[#111827] transition-colors cursor-pointer"
+            className="p-1.5 rounded-[6px] text-[#a1a1aa] hover:text-white hover:bg-white/[0.06] transition-colors cursor-pointer"
           >
             <SkipBack size={14} />
           </button>
 
           <button
             onClick={onPlayPause}
-            className={`flex items-center gap-1.5 px-3.5 py-1 rounded text-xs font-bold transition-all cursor-pointer ${
+            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-[6px] text-xs font-bold transition-all cursor-pointer ${
               isPlaying
-                ? 'bg-[#38bdf8] text-black shadow-[0_0_10px_rgba(56,189,248,0.4)]'
-                : 'bg-white text-black hover:bg-slate-200'
+                ? 'bg-[#F26522] text-white hover:bg-[#ff7738] shadow-[0_2px_10px_rgba(242,101,34,0.3)]'
+                : 'bg-white text-black hover:bg-zinc-200'
             }`}
           >
             {isPlaying ? <Pause size={13} /> : <Play size={13} fill="currentColor" />}
@@ -134,19 +134,19 @@ export function PlaybackDock({
           <button
             onClick={onNextStage}
             title="Next Stage (→)"
-            className="p-1.5 rounded text-[#94a3b8] hover:text-white hover:bg-[#111827] transition-colors cursor-pointer"
+            className="p-1.5 rounded-[6px] text-[#a1a1aa] hover:text-white hover:bg-white/[0.06] transition-colors cursor-pointer"
           >
             <SkipForward size={14} />
           </button>
 
           {/* Speed Selector */}
-          <div className="flex items-center ml-2 bg-[#111827] rounded p-0.5 border border-[#1f293d] text-[10px]">
+          <div className="flex items-center ml-2 bg-[#181816] rounded-[6px] p-0.5 border border-white/[0.08] text-[10px]">
             {[0.5, 1, 2].map((s) => (
               <button
                 key={s}
                 onClick={() => onSpeedChange(s)}
-                className={`px-1.5 py-0.5 rounded cursor-pointer transition-colors ${
-                  speed === s ? 'bg-[#38bdf8] text-black font-bold' : 'text-[#64748b] hover:text-white'
+                className={`px-2 py-0.5 rounded-[4px] cursor-pointer transition-colors ${
+                  speed === s ? 'bg-[#F26522] text-white font-bold' : 'text-[#71717a] hover:text-white'
                 }`}
               >
                 {s}x
@@ -159,21 +159,21 @@ export function PlaybackDock({
         <div className="flex items-center gap-2">
           <button
             onClick={toggleMute}
-            className={`flex items-center gap-1.5 px-2.5 py-1 rounded text-[10px] border transition-colors cursor-pointer ${
+            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-[6px] text-[11px] border border-white/[0.1] bg-[#181816] transition-colors cursor-pointer ${
               !isMuted
-                ? 'border-[#38bdf8]/40 text-[#38bdf8] bg-[#38bdf8]/10'
-                : 'border-[#1f293d] text-[#64748b] hover:text-white'
+                ? 'text-white'
+                : 'text-[#71717a] hover:text-white'
             }`}
           >
-            {isMuted ? <VolumeX size={12} /> : <Volume2 size={12} />}
+            {isMuted ? <VolumeX size={13} /> : <Volume2 size={13} className="text-[#F26522]" />}
             <span>{isMuted ? 'AUDIO: OFF' : 'AUDIO: ON'}</span>
           </button>
 
           <button
             onClick={onOpenModal}
-            className="flex items-center gap-1.5 px-3 py-1 rounded text-[11px] font-semibold bg-[#111827] border border-[#1f293d] text-white hover:border-[#38bdf8] transition-colors cursor-pointer"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-[6px] text-xs font-semibold bg-[#181816] border border-white/[0.1] text-white hover:border-[#F26522]/60 hover:text-white transition-colors cursor-pointer"
           >
-            <FileText size={12} className="text-[#38bdf8]" />
+            <FileText size={13} className="text-[#F26522]" />
             <span>PLAYBOOK & BENCHMARK</span>
           </button>
         </div>

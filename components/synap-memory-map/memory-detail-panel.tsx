@@ -15,9 +15,6 @@ import {
   CornerDownRight,
   Sparkles,
   Layers,
-  Network,
-  Database,
-  Search,
 } from 'lucide-react';
 import {
   MemoryItem,
@@ -84,15 +81,9 @@ export function MemoryDetailPanel({
       ? activeCustomer.userCount
       : data.customers.length;
 
-    const childScopeLabel = activeUser
-      ? 'Leaf Node'
-      : activeCustomer
-      ? `${childScopeCount} User Enclaves`
-      : `${childScopeCount} Customer Enclaves`;
-
     return (
-      <aside className="w-80 lg:w-[410px] border-l border-white/[0.08] bg-[#141413]/98 backdrop-blur-2xl p-5 flex flex-col justify-between text-white font-sans shrink-0 overflow-y-auto z-10 animate-in slide-in-from-right duration-150 select-none">
-        <div className="space-y-5">
+      <aside className="w-80 lg:w-[375px] border-l border-white/[0.08] bg-[#141413]/98 backdrop-blur-2xl p-4 sm:p-5 flex flex-col justify-between text-white font-sans shrink-0 overflow-y-auto z-10 animate-in slide-in-from-right duration-150 select-none">
+        <div className="space-y-4 sm:space-y-5">
           {/* Top Header: Title & Close */}
           <div className="flex items-center justify-between pb-3 border-b border-white/[0.08]">
             <div className="flex items-center gap-2">
@@ -306,7 +297,7 @@ export function MemoryDetailPanel({
   );
 
   return (
-    <aside className="w-80 lg:w-[420px] border-l border-white/[0.08] bg-[#141413]/98 backdrop-blur-2xl p-5 flex flex-col justify-between text-white font-sans shrink-0 overflow-y-auto z-10 animate-in slide-in-from-right duration-150 select-none">
+    <aside className="w-80 lg:w-[375px] border-l border-white/[0.08] bg-[#141413]/98 backdrop-blur-2xl p-4 sm:p-5 flex flex-col justify-between text-white font-sans shrink-0 overflow-y-auto z-10 animate-in slide-in-from-right duration-150 select-none">
       <div className="space-y-4">
         {/* Top Header: ID, Status Badge, Importance Rating, Center Camera, Close */}
         <div className="flex items-center justify-between pb-3 border-b border-white/[0.08]">

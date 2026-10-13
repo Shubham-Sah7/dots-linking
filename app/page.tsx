@@ -24,7 +24,7 @@ function MainDashboardContent() {
         onModeChange={setCurrentMode}
       />
 
-      {/* Active Dashboard View: 1. Rescue (Default), 2. Synap, 3. Sonnet 5.5 + Jev */}
+      {/* Active Dashboard View: 1. Legacy Recovery (Default), 2. Memory Explorer, 3. AI Code Optimization */}
       {currentMode === 'rescue' && <RescueDashboardView />}
       {currentMode === 'synap' && <SynapMemoryView />}
       {currentMode === 'jev' && <JevDashboardView />}

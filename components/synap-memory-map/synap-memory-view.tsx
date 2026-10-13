@@ -14,6 +14,7 @@ import { MemoryDetailPanel } from './memory-detail-panel';
 import { CanvasBottomControls } from './canvas-bottom-controls';
 import { MemoryTableView } from './memory-table-view';
 import { FounderGuideBanner } from './founder-guide-banner';
+import { ReferencePatternModal } from './dotted-pattern';
 
 export function SynapMemoryView() {
   const [activeCustomer, setActiveCustomer] = useState<CustomerScope | null>(null);
@@ -25,10 +26,13 @@ export function SynapMemoryView() {
   const [isTableView, setIsTableView] = useState<boolean>(false);
   const [isDetailPanelOpen, setIsDetailPanelOpen] = useState<boolean>(true);
   const [isGuideOpen, setIsGuideOpen] = useState<boolean>(false);
+  const [isPatternModalOpen, setIsPatternModalOpen] = useState<boolean>(false);
+  const [patternMode, setPatternMode] = useState<'integrated' | 'reference'>('integrated');
   const [cameraFocusTarget, setCameraFocusTarget] = useState<{
     x: number;
     y: number;
     zoom?: number;
+    t?: number;
   } | null>(null);
 
   // Scope navigation handlers
@@ -42,6 +46,7 @@ export function SynapMemoryView() {
         x: customer.bounds.x + customer.bounds.width / 2,
         y: customer.bounds.y + customer.bounds.height / 2,
         zoom: 1.15,
+        t: Date.now(),
       });
     }
   }, []);
@@ -56,6 +61,7 @@ export function SynapMemoryView() {
           x: user.bounds.x + user.bounds.width / 2,
           y: user.bounds.y + user.bounds.height / 2,
           zoom: 1.4,
+          t: Date.now(),
         });
       }
     },
@@ -71,6 +77,7 @@ export function SynapMemoryView() {
           x: memory.x,
           y: memory.y,
           zoom: 1.35,
+          t: Date.now(),
         });
       }
     }
@@ -82,6 +89,7 @@ export function SynapMemoryView() {
         x: memory.x,
         y: memory.y,
         zoom: 1.5,
+        t: Date.now(),
       });
     }
   }, []);
@@ -101,11 +109,12 @@ export function SynapMemoryView() {
     setSelectedMemory(null);
     setCategoryFilter(null);
     setStatusFilter('All');
-    const clientBounds = SYNAP_CLIENT_DATA.bounds || { x: 30, y: 30, width: 1390, height: 650 };
+    const clientBounds = SYNAP_CLIENT_DATA.bounds || { x: 30, y: 30, width: 1380, height: 650 };
     setCameraFocusTarget({
       x: clientBounds.x + clientBounds.width / 2,
       y: clientBounds.y + clientBounds.height / 2,
-      zoom: undefined, // Let canvas auto-calculate the exact 88% scale
+      zoom: undefined, // Signals fitCameraToViewport
+      t: Date.now(),
     });
   }, []);
 
@@ -162,6 +171,7 @@ export function SynapMemoryView() {
               onZoomChange={setZoomLevel}
               cameraFocusTarget={cameraFocusTarget}
               isDetailPanelOpen={isDetailPanelOpen}
+              patternMode={patternMode}
             />
 
             {/* Bottom Legend & Camera Zoom Controls */}
@@ -173,6 +183,11 @@ export function SynapMemoryView() {
               onOpenGuide={() => setIsGuideOpen(true)}
               isDetailPanelOpen={isDetailPanelOpen}
               onToggleDetailPanel={handleToggleDetailPanel}
+              patternMode={patternMode}
+              onTogglePatternMode={() =>
+                setPatternMode((prev) => (prev === 'reference' ? 'integrated' : 'reference'))
+              }
+              onOpenPatternModal={() => setIsPatternModalOpen(true)}
             />
           </div>
 
@@ -201,6 +216,12 @@ export function SynapMemoryView() {
 
       {/* 3. Founder Specification Guide Modal */}
       <FounderGuideBanner isOpen={isGuideOpen} onClose={() => setIsGuideOpen(false)} />
+
+      {/* 4. Dotted Pattern Visual Component Inspector Modal */}
+      <ReferencePatternModal
+        isOpen={isPatternModalOpen}
+        onClose={() => setIsPatternModalOpen(false)}
+      />
     </div>
   );
 }
