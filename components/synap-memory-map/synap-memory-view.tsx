@@ -1,0 +1,206 @@
+'use client';
+
+import React, { useState, useCallback } from 'react';
+import { SYNAP_CLIENT_DATA } from './mock-data';
+import {
+  CustomerScope,
+  UserScope,
+  MemoryItem,
+  EntityCategory,
+} from './types';
+import { MemoryMapCanvas } from './memory-map-canvas';
+import { GraphFilterHeader } from './graph-filter-header';
+import { MemoryDetailPanel } from './memory-detail-panel';
+import { CanvasBottomControls } from './canvas-bottom-controls';
+import { MemoryTableView } from './memory-table-view';
+import { FounderGuideBanner } from './founder-guide-banner';
+
+export function SynapMemoryView() {
+  const [activeCustomer, setActiveCustomer] = useState<CustomerScope | null>(null);
+  const [activeUser, setActiveUser] = useState<UserScope | null>(null);
+  const [selectedMemory, setSelectedMemory] = useState<MemoryItem | null>(null);
+  const [categoryFilter, setCategoryFilter] = useState<EntityCategory | null>(null);
+  const [statusFilter, setStatusFilter] = useState<'All' | 'Active' | 'Superseded'>('All');
+  const [zoomLevel, setZoomLevel] = useState<number>(0.85);
+  const [isTableView, setIsTableView] = useState<boolean>(false);
+  const [isDetailPanelOpen, setIsDetailPanelOpen] = useState<boolean>(true);
+  const [isGuideOpen, setIsGuideOpen] = useState<boolean>(false);
+  const [cameraFocusTarget, setCameraFocusTarget] = useState<{
+    x: number;
+    y: number;
+    zoom?: number;
+  } | null>(null);
+
+  // Scope navigation handlers
+  const handleSelectCustomer = useCallback((customer: CustomerScope | null) => {
+    setActiveCustomer(customer);
+    setActiveUser(null);
+    setSelectedMemory(null);
+
+    if (customer && customer.bounds) {
+      setCameraFocusTarget({
+        x: customer.bounds.x + customer.bounds.width / 2,
+        y: customer.bounds.y + customer.bounds.height / 2,
+        zoom: 1.15,
+      });
+    }
+  }, []);
+
+  const handleSelectUser = useCallback(
+    (user: UserScope | null) => {
+      setActiveUser(user);
+      setSelectedMemory(null);
+
+      if (user && user.bounds) {
+        setCameraFocusTarget({
+          x: user.bounds.x + user.bounds.width / 2,
+          y: user.bounds.y + user.bounds.height / 2,
+          zoom: 1.4,
+        });
+      }
+    },
+    []
+  );
+
+  const handleSelectMemory = useCallback((memory: MemoryItem | null) => {
+    setSelectedMemory(memory);
+    if (memory) {
+      setIsDetailPanelOpen(true);
+      if (memory.x !== undefined && memory.y !== undefined) {
+        setCameraFocusTarget({
+          x: memory.x,
+          y: memory.y,
+          zoom: 1.35,
+        });
+      }
+    }
+  }, []);
+
+  const handleFocusMemory = useCallback((memory: MemoryItem) => {
+    if (memory.x !== undefined && memory.y !== undefined) {
+      setCameraFocusTarget({
+        x: memory.x,
+        y: memory.y,
+        zoom: 1.5,
+      });
+    }
+  }, []);
+
+  // Zoom handlers
+  const handleZoomIn = useCallback(() => {
+    setZoomLevel((z) => Math.min(3.0, +(z + 0.2).toFixed(2)));
+  }, []);
+
+  const handleZoomOut = useCallback(() => {
+    setZoomLevel((z) => Math.max(0.35, +(z - 0.2).toFixed(2)));
+  }, []);
+
+  const handleResetView = useCallback(() => {
+    setActiveCustomer(null);
+    setActiveUser(null);
+    setSelectedMemory(null);
+    setCategoryFilter(null);
+    setStatusFilter('All');
+    const clientBounds = SYNAP_CLIENT_DATA.bounds || { x: 30, y: 30, width: 1390, height: 650 };
+    setCameraFocusTarget({
+      x: clientBounds.x + clientBounds.width / 2,
+      y: clientBounds.y + clientBounds.height / 2,
+      zoom: undefined, // Let canvas auto-calculate the exact 88% scale
+    });
+  }, []);
+
+  const handleToggleDetailPanel = useCallback(() => {
+    setIsDetailPanelOpen((prev) => !prev);
+  }, []);
+
+  return (
+    <div className="flex-1 min-h-0 w-full bg-[#1B1B19] text-white flex flex-col font-sans select-none overflow-hidden">
+      {/* 1. Header with Title, Metrics, Search, Scope Breadcrumb & Filters */}
+      <GraphFilterHeader
+        data={SYNAP_CLIENT_DATA}
+        activeCustomer={activeCustomer}
+        activeUser={activeUser}
+        selectedMemory={selectedMemory}
+        categoryFilter={categoryFilter}
+        statusFilter={statusFilter}
+        onSelectCustomer={handleSelectCustomer}
+        onSelectUser={handleSelectUser}
+        onSelectMemory={handleSelectMemory}
+        onCategoryFilterChange={setCategoryFilter}
+        onStatusFilterChange={setStatusFilter}
+        onResetView={handleResetView}
+        isTableView={isTableView}
+        onToggleTableView={() => setIsTableView((prev) => !prev)}
+        isDetailPanelOpen={isDetailPanelOpen}
+        onToggleDetailPanel={handleToggleDetailPanel}
+      />
+
+      {/* 2. Main Content Area */}
+      {isTableView ? (
+        <MemoryTableView
+          data={SYNAP_CLIENT_DATA}
+          onSelectMemory={(mem) => {
+            handleSelectMemory(mem);
+            setIsTableView(false);
+          }}
+        />
+      ) : (
+        <div className="relative w-full flex-1 flex flex-row overflow-hidden min-h-0">
+          {/* Central Interactive Graph Canvas */}
+          <div className="relative flex-1 flex flex-col min-w-0 h-full">
+            <MemoryMapCanvas
+              data={SYNAP_CLIENT_DATA}
+              activeCustomer={activeCustomer}
+              activeUser={activeUser}
+              selectedMemory={selectedMemory}
+              categoryFilter={categoryFilter}
+              statusFilter={statusFilter}
+              onSelectCustomer={handleSelectCustomer}
+              onSelectUser={handleSelectUser}
+              onSelectMemory={handleSelectMemory}
+              zoomLevel={zoomLevel}
+              onZoomChange={setZoomLevel}
+              cameraFocusTarget={cameraFocusTarget}
+              isDetailPanelOpen={isDetailPanelOpen}
+            />
+
+            {/* Bottom Legend & Camera Zoom Controls */}
+            <CanvasBottomControls
+              zoomLevel={zoomLevel}
+              onZoomIn={handleZoomIn}
+              onZoomOut={handleZoomOut}
+              onResetZoom={handleResetView}
+              onOpenGuide={() => setIsGuideOpen(true)}
+              isDetailPanelOpen={isDetailPanelOpen}
+              onToggleDetailPanel={handleToggleDetailPanel}
+            />
+          </div>
+
+          {/* Contextual Side Inspection Panel */}
+          {isDetailPanelOpen && (
+            <MemoryDetailPanel
+              memory={selectedMemory}
+              data={SYNAP_CLIENT_DATA}
+              activeCustomer={activeCustomer}
+              activeUser={activeUser}
+              onSelectCustomer={handleSelectCustomer}
+              onSelectUser={handleSelectUser}
+              onSelectMemory={handleSelectMemory}
+              onClose={() => {
+                if (selectedMemory) {
+                  setSelectedMemory(null);
+                } else {
+                  setIsDetailPanelOpen(false);
+                }
+              }}
+              onFocusMemory={handleFocusMemory}
+            />
+          )}
+        </div>
+      )}
+
+      {/* 3. Founder Specification Guide Modal */}
+      <FounderGuideBanner isOpen={isGuideOpen} onClose={() => setIsGuideOpen(false)} />
+    </div>
+  );
+}
