@@ -19,15 +19,9 @@
 4. Only present results when everything is functioning perfectly
 5. If errors occur, fix them immediately and continue
 
-## Database & ORM
-- **Prisma with PostgreSQL**: We're using Prisma as our ORM with a PostgreSQL database (hosted on Neon)
-- **Database URL**: Configured in `.env` as `DATABASE_URL`
-- **Prisma Client**: Available at `lib/prisma.ts` for database operations
-- **Schema Location**: `prisma/schema.prisma` for data models
-- **Migrations**: Use `npx prisma migrate dev` for schema changes
-
-## Authentication
-- Standalone client application; external auth providers (Clerk) removed to ensure zero-config deployment.
+## Data & Architecture
+- Visual dashboard and telemetry components run with typed mock data (`mock-data.ts`, `stages-data.ts`).
+- Standalone client application with zero runtime database or external authentication requirements.
 
 ## UI Components & Styling
 - **Shadcn/UI Components**: Always use Shadcn components for UI elements
@@ -45,9 +39,7 @@
 1. **Breaking Changes**: This version of Next.js may have breaking changes from your training data
 2. **API Changes**: Check `node_modules/next/dist/docs/` for current Next.js documentation
 3. **Deprecation Notices**: Heed any deprecation warnings in the console
-4. **Database Operations**: Always use the Prisma client from `lib/prisma.ts` for database operations
-5. **Authentication Flow**: Follow Clerk's patterns for authentication flows
-6. **Component Usage**: Prefer Shadcn components over custom implementations for consistency
+4. **Component Usage**: Prefer Shadcn components over custom implementations for consistency
 
 ## When Things Break
 - **Fix It Immediately**: Don't wait for instructions - diagnose and fix the issue
@@ -56,18 +48,11 @@
 - **Test Incrementally**: Make small changes and test frequently
 - **Use TypeScript**: Let TypeScript catch errors during development
 - **Consult Logs**: Check console logs and error messages for clues
-- **Run Commands**: Use the terminal freely to fix issues (migrations, installs, etc.)
 - **Verify Fixes**: Always test that your fix actually works before moving on
 
 ## Quick Reference Commands
-**Note: You should run these commands automatically as needed - don't ask for permission**
 
 ```bash
-# Database (Run these automatically when schema changes)
-npx prisma generate    # Generate Prisma client
-npx prisma migrate dev # Create and apply migrations
-npx prisma db push     # Push schema changes without migrations (dev only)
-npx prisma studio      # Open Prisma Studio for data management
 
 # Development
 npm run dev           # Start development server
