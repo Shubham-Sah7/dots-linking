@@ -10,6 +10,7 @@ import { CaseStudyModal } from './case-study-modal';
 import { JEV_STAGES_DATA } from './stages-data';
 import { JevStageData } from './types';
 import { soundEngine } from '../rescue-dashboard/audio-engine';
+import { GraphSidebar } from '@/components/synap-memory-map/graph-sidebar';
 
 const TOTAL_DURATION = 26.0;
 
@@ -118,47 +119,53 @@ export function JevDashboardView() {
   }, [handlePlayPause, handlePrevStage, handleNextStage, handleReset]);
 
   return (
-    <div className="min-h-screen w-full bg-[#1B1B19] text-white flex flex-col justify-between selection:bg-[#F26522]/30 selection:text-white">
-      {/* 1. Header Bar: Title, 4 Stat Columns, 5 Tabs */}
-      <HeaderBar currentStage={currentStage} onSelectStage={handleSelectStage} />
+    <div className="min-h-screen w-full bg-[#1B1B19] text-white flex flex-row selection:bg-[#F26522]/30 selection:text-white">
+      {/* Fixed Full-Height Left Navigation Sidebar matching reference image */}
+      <GraphSidebar />
 
-      {/* 2. Interactive Dandelion Canvas */}
-      <div className="relative w-full flex-1 flex flex-col">
-        <DandelionCanvas
+      {/* Main Content Area */}
+      <div className="flex-1 min-w-0 flex flex-col justify-between min-h-screen">
+        {/* 1. Header Bar: Title, 4 Stat Columns, 5 Tabs */}
+        <HeaderBar currentStage={currentStage} onSelectStage={handleSelectStage} />
+
+        {/* 2. Interactive Dandelion Canvas */}
+        <div className="relative w-full flex-1 flex flex-col">
+          <DandelionCanvas
+            currentStage={currentStage}
+            selectedNode={selectedNode}
+            onSelectNode={setSelectedNode}
+          />
+
+          {/* 3. Divider Bar */}
+          <DividerBar currentStage={currentStage} />
+
+          {/* 4. Bottom 5-Module HUD Telemetry Grid */}
+          <TelemetryModules
+            currentStage={currentStage}
+            selectedNode={selectedNode}
+            onSelectNode={setSelectedNode}
+          />
+        </div>
+
+        {/* 5. Bottom Playback Dock */}
+        <PlaybackDock
+          currentTime={currentTime}
+          duration={TOTAL_DURATION}
+          isPlaying={isPlaying}
+          speed={speed}
           currentStage={currentStage}
-          selectedNode={selectedNode}
-          onSelectNode={setSelectedNode}
+          onPlayPause={handlePlayPause}
+          onSeek={handleSeek}
+          onPrevStage={handlePrevStage}
+          onNextStage={handleNextStage}
+          onSpeedChange={setSpeed}
+          onReset={handleReset}
+          onOpenModal={() => setIsModalOpen(true)}
         />
 
-        {/* 3. Divider Bar */}
-        <DividerBar currentStage={currentStage} />
-
-        {/* 4. Bottom 5-Module HUD Telemetry Grid */}
-        <TelemetryModules
-          currentStage={currentStage}
-          selectedNode={selectedNode}
-          onSelectNode={setSelectedNode}
-        />
+        {/* 6. Case Study & Playbook Modal */}
+        <CaseStudyModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
       </div>
-
-      {/* 5. Bottom Playback Dock */}
-      <PlaybackDock
-        currentTime={currentTime}
-        duration={TOTAL_DURATION}
-        isPlaying={isPlaying}
-        speed={speed}
-        currentStage={currentStage}
-        onPlayPause={handlePlayPause}
-        onSeek={handleSeek}
-        onPrevStage={handlePrevStage}
-        onNextStage={handleNextStage}
-        onSpeedChange={setSpeed}
-        onReset={handleReset}
-        onOpenModal={() => setIsModalOpen(true)}
-      />
-
-      {/* 6. Case Study & Playbook Modal */}
-      <CaseStudyModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
     </div>
   );
 }

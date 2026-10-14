@@ -10,6 +10,7 @@ import { CaseStudyModal } from './case-study-modal';
 import { STAGES_DATA } from './stages-data';
 import { StageData } from './types';
 import { soundEngine } from './audio-engine';
+import { GraphSidebar } from '@/components/synap-memory-map/graph-sidebar';
 
 const TOTAL_DURATION = 28.0;
 
@@ -118,47 +119,53 @@ export function RescueDashboardView() {
   }, [handlePlayPause, handlePrevStage, handleNextStage, handleReset]);
 
   return (
-    <div className="min-h-screen w-full bg-[#1B1B19] text-[#F4F4F5] font-mono flex flex-col justify-between selection:bg-[#F26522] selection:text-white">
-      {/* 1. Header Bar: Meta & 8 Pipeline Tabs */}
-      <HeaderBar currentStage={currentStage} onSelectStage={handleSelectStage} />
+    <div className="min-h-screen w-full bg-[#1B1B19] text-[#F4F4F5] font-mono flex flex-row selection:bg-[#F26522] selection:text-white">
+      {/* Fixed Full-Height Left Navigation Sidebar matching reference image */}
+      <GraphSidebar />
 
-      {/* 2. Interactive Network Canvas (Center Swarm Graph) */}
-      <div className="relative w-full flex-1 flex flex-col">
-        <NetworkCanvas
+      {/* Main Content Area */}
+      <div className="flex-1 min-w-0 flex flex-col justify-between min-h-screen">
+        {/* 1. Header Bar: Meta & 8 Pipeline Tabs */}
+        <HeaderBar currentStage={currentStage} onSelectStage={handleSelectStage} />
+
+        {/* 2. Interactive Network Canvas (Center Swarm Graph) */}
+        <div className="relative w-full flex-1 flex flex-col">
+          <NetworkCanvas
+            currentStage={currentStage}
+            selectedAgent={selectedAgent}
+            onSelectAgent={setSelectedAgent}
+          />
+
+          {/* 3. Middle Status Banner Divider */}
+          <DividerBar currentStage={currentStage} />
+
+          {/* 4. Bottom 8-Module HUD Telemetry Modules */}
+          <TelemetryModules
+            currentStage={currentStage}
+            selectedAgent={selectedAgent}
+            onSelectAgent={setSelectedAgent}
+          />
+        </div>
+
+        {/* 5. Bottom Playback Dock (Scrubber, Controls, Audio, Fullscreen) */}
+        <PlaybackDock
+          currentTime={currentTime}
+          duration={TOTAL_DURATION}
+          isPlaying={isPlaying}
+          speed={speed}
           currentStage={currentStage}
-          selectedAgent={selectedAgent}
-          onSelectAgent={setSelectedAgent}
+          onPlayPause={handlePlayPause}
+          onSeek={handleSeek}
+          onPrevStage={handlePrevStage}
+          onNextStage={handleNextStage}
+          onSpeedChange={setSpeed}
+          onReset={handleReset}
+          onOpenModal={() => setIsModalOpen(true)}
         />
 
-        {/* 3. Middle Status Banner Divider */}
-        <DividerBar currentStage={currentStage} />
-
-        {/* 4. Bottom 8-Module HUD Telemetry Modules */}
-        <TelemetryModules
-          currentStage={currentStage}
-          selectedAgent={selectedAgent}
-          onSelectAgent={setSelectedAgent}
-        />
+        {/* 6. Context & Rescue Brief Modal */}
+        <CaseStudyModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
       </div>
-
-      {/* 5. Bottom Playback Dock (Scrubber, Controls, Audio, Fullscreen) */}
-      <PlaybackDock
-        currentTime={currentTime}
-        duration={TOTAL_DURATION}
-        isPlaying={isPlaying}
-        speed={speed}
-        currentStage={currentStage}
-        onPlayPause={handlePlayPause}
-        onSeek={handleSeek}
-        onPrevStage={handlePrevStage}
-        onNextStage={handleNextStage}
-        onSpeedChange={setSpeed}
-        onReset={handleReset}
-        onOpenModal={() => setIsModalOpen(true)}
-      />
-
-      {/* 6. Context & Rescue Brief Modal */}
-      <CaseStudyModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
     </div>
   );
 }

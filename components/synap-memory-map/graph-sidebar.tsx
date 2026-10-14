@@ -109,7 +109,7 @@ export function GraphSidebar({
     <>
       {/* Fixed Full-Height Left Sidebar */}
       <aside
-        className={`h-full bg-[#0D0D0C] border-r border-white/[0.08] text-white flex flex-col justify-between shrink-0 select-none font-sans z-30 transition-all duration-200 ${
+        className={`h-screen sticky top-0 bg-[#0D0D0C] border-r border-white/[0.08] text-white flex flex-col justify-between shrink-0 select-none font-sans z-30 transition-all duration-200 overflow-y-auto scrollbar-none ${
           isCollapsed
             ? 'w-[72px] px-2 py-5 items-center'
             : 'w-[280px] sm:w-[320px] xl:w-[456px] px-5 sm:px-6 py-6'
