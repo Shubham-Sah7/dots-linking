@@ -83,24 +83,27 @@ function MaximemSynapLogo({ className = 'size-6' }: { className?: string }) {
 }
 
 export function GraphSidebar({
+  activeNav = 'graph',
   onNavigate,
   className = '',
 }: GraphSidebarProps) {
+  const [selectedNav, setSelectedNav] = useState<NavItemKey>(activeNav);
   const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState<boolean>(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState<boolean>(false);
   const [feedbackNotice, setFeedbackNotice] = useState<string | null>(null);
 
   // Trigger notice when clicking non-graph items ("only graph should work")
   const handleDisabledNavClick = (name: string) => {
-    setFeedbackNotice(`${name} is disabled — only Memory Graph is active`);
+    setFeedbackNotice(`${name} is disabled — only Graph is active`);
     setTimeout(() => {
       setFeedbackNotice(null);
     }, 2200);
   };
 
-  const handleGraphClick = () => {
+  const handleNavClick = (key: NavItemKey) => {
+    setSelectedNav(key);
     if (onNavigate) {
-      onNavigate('graph');
+      onNavigate(key);
     }
   };
 
@@ -138,49 +141,66 @@ export function GraphSidebar({
               <ChevronRight size={14} className="text-[#71717A] group-hover:text-[#A1A1AA] shrink-0" />
             </button>
 
-            {/* 2. Dashboard (Active container with rounded orange badge #F26522) */}
+            {/* 2. Dashboard with nested Requests (as in reference image) */}
             <div className="w-full space-y-1">
               <button
                 type="button"
-                onClick={handleGraphClick}
-                className="w-full flex items-center justify-between px-3 py-2.5 rounded-[10px] text-sm font-semibold bg-[#F26522] text-white shadow-sm transition-all cursor-pointer"
-                title="Dashboard (Memory Graph)"
+                onClick={() => handleNavClick('dashboard')}
+                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-[10px] text-sm font-semibold transition-all cursor-pointer ${
+                  selectedNav === 'dashboard'
+                    ? 'bg-[#F26522] text-white shadow-sm'
+                    : 'text-[#D4D4D8] hover:text-white hover:bg-white/[0.03]'
+                }`}
+                title="Dashboard"
               >
                 <div className="flex items-center gap-3 truncate">
-                  <Home size={18} className="text-white shrink-0" />
+                  <Home
+                    size={18}
+                    className={`shrink-0 ${selectedNav === 'dashboard' ? 'text-white' : 'text-[#A1A1AA]'}`}
+                  />
                   <span className="truncate">Dashboard</span>
                 </div>
-                <ChevronDown size={14} className="text-white shrink-0" />
+                <ChevronDown
+                  size={14}
+                  className={`shrink-0 ${selectedNav === 'dashboard' ? 'text-white' : 'text-[#71717A]'}`}
+                />
               </button>
 
-              {/* Nested Sub-items under Dashboard: Graph (ACTIVE) & Requests (DISABLED) */}
-              <div className="w-full space-y-0.5 pt-0.5">
-                {/* A. Graph: The primary working view where everything is! */}
-                <button
-                  type="button"
-                  onClick={handleGraphClick}
-                  className="w-full flex items-center justify-between pl-9 pr-3 py-1.5 rounded-[7px] text-xs font-semibold bg-white/[0.08] text-white transition-colors cursor-pointer"
-                  title="Memory Graph (Active)"
-                >
-                  <div className="flex items-center gap-2.5 truncate">
-                    <Network size={14} className="text-[#F26522] shrink-0" />
-                    <span className="truncate">Graph</span>
-                  </div>
-                  <span className="size-1.5 rounded-full bg-[#34D399] shadow-[0_0_6px_#34D399] shrink-0" />
-                </button>
-
-                {/* B. Requests (Disabled: only graph works) */}
-                <button
-                  type="button"
-                  onClick={() => handleDisabledNavClick('Requests')}
-                  className="w-full flex items-center gap-2.5 pl-9 pr-3 py-1.5 rounded-[7px] text-xs text-[#A1A1AA] hover:text-white hover:bg-white/[0.03] transition-colors cursor-pointer"
-                  title="Requests"
-                >
-                  <History size={14} className="text-[#71717A] shrink-0" />
-                  <span className="truncate">Requests</span>
-                </button>
-              </div>
+              {/* Nested Requests under Dashboard (matching reference design) */}
+              <button
+                type="button"
+                onClick={() => handleDisabledNavClick('Requests')}
+                className="w-full flex items-center gap-2.5 pl-9 pr-3 py-1.5 rounded-[7px] text-xs text-[#A1A1AA] hover:text-white hover:bg-white/[0.03] transition-colors cursor-pointer"
+                title="Requests"
+              >
+                <History size={14} className="text-[#71717A] shrink-0" />
+                <span className="truncate">Requests</span>
+              </button>
             </div>
+
+            {/* 3. Graph (One More Separate Menu!) */}
+            <button
+              type="button"
+              onClick={() => handleNavClick('graph')}
+              className={`w-full flex items-center justify-between px-3 py-2.5 rounded-[10px] text-sm font-semibold transition-all cursor-pointer ${
+                selectedNav === 'graph'
+                  ? 'bg-[#F26522] text-white shadow-sm'
+                  : 'text-[#D4D4D8] hover:text-white hover:bg-white/[0.03]'
+              }`}
+              title="Graph (Memory Map)"
+            >
+              <div className="flex items-center gap-3 truncate">
+                <Network
+                  size={18}
+                  className={`shrink-0 ${selectedNav === 'graph' ? 'text-white' : 'text-[#A1A1AA]'}`}
+                />
+                <span className="truncate">Graph</span>
+              </div>
+              <ChevronRight
+                size={14}
+                className={`shrink-0 ${selectedNav === 'graph' ? 'text-white' : 'text-[#71717A]'}`}
+              />
+            </button>
 
             {/* 3. Instances (Disabled: only graph works) */}
             <button
@@ -196,10 +216,10 @@ export function GraphSidebar({
               <ChevronRight size={14} className="text-[#71717A] group-hover:text-[#A1A1AA] shrink-0" />
             </button>
 
-            {/* 4. Memories (Disabled: only graph works) */}
+            {/* 4. Memories */}
             <button
               type="button"
-              onClick={handleGraphClick}
+              onClick={() => handleNavClick('graph')}
               className="w-full flex items-center justify-between px-3 py-2.5 rounded-[9px] text-sm font-medium text-[#D4D4D8] hover:text-white hover:bg-white/[0.03] transition-colors cursor-pointer group"
               title="Memories"
             >
