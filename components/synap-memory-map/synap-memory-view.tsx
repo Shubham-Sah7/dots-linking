@@ -165,16 +165,13 @@ export function SynapMemoryView() {
   const handleNavigate = useCallback(
     (key: NavItemKey) => {
       setActiveNav(key);
-      if (key === 'synap-doc' || key === 'setup') {
-        setIsGuideOpen(true);
-      } else if (key === 'requests') {
-        setIsTableView(true);
-      } else if (key === 'dashboard' || key === 'memories') {
+      if (key === 'graph' || key === 'dashboard' || key === 'memories') {
         setIsTableView(false);
-        if (key === 'memories') {
+        if (key === 'graph' || key === 'memories') {
           handleResetView();
         }
       }
+      // Any other nav does not navigate away — only graph works
     },
     [handleResetView]
   );

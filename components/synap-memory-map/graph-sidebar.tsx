@@ -12,12 +12,10 @@ import {
   ChevronDown,
   ChevronsUpDown,
   ArrowUpRight,
+  Network,
   Check,
   LogOut,
   Sparkles,
-  CreditCard,
-  PanelLeftClose,
-  PanelLeftOpen,
 } from 'lucide-react';
 import {
   CustomerScope,
@@ -29,6 +27,7 @@ import {
 export type NavItemKey =
   | 'setup'
   | 'dashboard'
+  | 'graph'
   | 'requests'
   | 'instances'
   | 'memories'
@@ -51,7 +50,7 @@ export interface GraphSidebarProps {
  * Custom Memories Icon: Divided cell / dual hemisphere circle outline
  * Matching the exact visual silhouette in the Maximem reference image.
  */
-function MemoriesIcon({ className = 'size-5' }: { className?: string }) {
+function MemoriesIcon({ className = 'size-[18px]' }: { className?: string }) {
   return (
     <svg
       viewBox="0 0 24 24"
@@ -84,400 +83,265 @@ function MaximemSynapLogo({ className = 'size-6' }: { className?: string }) {
 }
 
 export function GraphSidebar({
-  activeNav = 'dashboard',
   onNavigate,
   className = '',
 }: GraphSidebarProps) {
-  const [selectedNav, setSelectedNav] = useState<NavItemKey>(activeNav);
-  const [isDashboardExpanded, setIsDashboardExpanded] = useState<boolean>(true);
-  const [isSetupExpanded, setIsSetupExpanded] = useState<boolean>(false);
-  const [isInstancesExpanded, setIsInstancesExpanded] = useState<boolean>(false);
-  const [isMemoriesExpanded, setIsMemoriesExpanded] = useState<boolean>(false);
-  const [isSettingsExpanded, setIsSettingsExpanded] = useState<boolean>(false);
   const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState<boolean>(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState<boolean>(false);
-  const [isCollapsed, setIsCollapsed] = useState<boolean>(false);
+  const [feedbackNotice, setFeedbackNotice] = useState<string | null>(null);
 
-  const handleSelectNav = (key: NavItemKey) => {
-    setSelectedNav(key);
+  // Trigger notice when clicking non-graph items ("only graph should work")
+  const handleDisabledNavClick = (name: string) => {
+    setFeedbackNotice(`${name} is disabled — only Memory Graph is active`);
+    setTimeout(() => {
+      setFeedbackNotice(null);
+    }, 2200);
+  };
+
+  const handleGraphClick = () => {
     if (onNavigate) {
-      onNavigate(key);
+      onNavigate('graph');
     }
   };
 
   return (
     <>
-      {/* Fixed Full-Height Left Sidebar */}
+      {/* Fixed Full-Height Left Sidebar - Exact 240px width matching reference image */}
       <aside
-        className={`h-screen sticky top-0 bg-[#0D0D0C] border-r border-white/[0.08] text-white flex flex-col justify-between shrink-0 select-none font-sans z-30 transition-all duration-200 overflow-y-auto scrollbar-none ${
-          isCollapsed
-            ? 'w-[72px] px-2 py-5 items-center'
-            : 'w-[280px] sm:w-[320px] xl:w-[456px] px-5 sm:px-6 py-6'
-        } ${className}`}
+        className={`h-screen sticky top-0 bg-[#0D0D0C] border-r border-white/[0.08] text-white flex flex-col justify-between shrink-0 select-none font-sans z-30 transition-all duration-150 overflow-y-auto scrollbar-none w-[240px] px-2.5 py-4 ${className}`}
       >
         {/* Top Section: Brand Header & Navigation Items */}
-        <div className="flex flex-col space-y-7 w-full overflow-hidden">
-          {/* Header: Maximem Synap Brand */}
-          <div className="flex items-center justify-between w-full pt-1">
-            <div className="flex items-center gap-3.5 overflow-hidden">
-              <div className="size-6 shrink-0 flex items-center justify-center">
-                <MaximemSynapLogo className="size-6" />
-              </div>
-              {!isCollapsed && (
-                <span className="font-bold text-[18px] tracking-tight text-white truncate">
-                  Maximem Synap
-                </span>
-              )}
+        <div className="flex flex-col space-y-6 w-full">
+          {/* Header: Maximem Synap Brand (No extra close buttons) */}
+          <div className="flex items-center gap-3 w-full px-2 pt-1">
+            <div className="size-6 shrink-0 flex items-center justify-center">
+              <MaximemSynapLogo className="size-6" />
             </div>
-
-            {/* Responsive Collapse / Rail Toggle */}
-            <button
-              onClick={() => setIsCollapsed((prev) => !prev)}
-              title={isCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
-              className="text-[#71717A] hover:text-white p-1 rounded-[6px] hover:bg-white/[0.06] transition-colors"
-            >
-              {isCollapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
-            </button>
+            <span className="font-bold text-[17px] tracking-tight text-white truncate font-sans">
+              Maximem Synap
+            </span>
           </div>
 
           {/* Navigation Items Group */}
-          <nav className="flex flex-col space-y-1.5 w-full">
-            {/* 1. Setup */}
-            <div className="w-full">
-              <button
-                onClick={() => {
-                  handleSelectNav('setup');
-                  setIsSetupExpanded((prev) => !prev);
-                }}
-                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-[10px] text-sm font-medium transition-colors cursor-pointer group ${
-                  selectedNav === 'setup'
-                    ? 'text-white bg-white/[0.06]'
-                    : 'text-[#D4D4D8] hover:text-white hover:bg-white/[0.04]'
-                }`}
-                title="Setup"
-              >
-                <div className="flex items-center gap-3.5 truncate">
-                  <PlusCircle size={19} className="text-[#A1A1AA] group-hover:text-white shrink-0" />
-                  {!isCollapsed && <span className="truncate">Setup</span>}
-                </div>
-                {!isCollapsed && (
-                  <ChevronRight
-                    size={16}
-                    className={`text-[#71717A] transition-transform duration-200 shrink-0 ${
-                      isSetupExpanded ? 'rotate-90 text-white' : 'group-hover:text-[#A1A1AA]'
-                    }`}
-                  />
-                )}
-              </button>
+          <nav className="flex flex-col space-y-1 w-full">
+            {/* 1. Setup (Disabled: only graph works) */}
+            <button
+              type="button"
+              onClick={() => handleDisabledNavClick('Setup')}
+              className="w-full flex items-center justify-between px-3 py-2.5 rounded-[9px] text-sm font-medium text-[#D4D4D8] hover:text-white hover:bg-white/[0.03] transition-colors cursor-pointer group"
+              title="Setup"
+            >
+              <div className="flex items-center gap-3 truncate">
+                <PlusCircle size={18} className="text-[#A1A1AA] group-hover:text-white shrink-0" />
+                <span className="truncate">Setup</span>
+              </div>
+              <ChevronRight size={14} className="text-[#71717A] group-hover:text-[#A1A1AA] shrink-0" />
+            </button>
 
-              {/* Collapsible Setup Sub-items */}
-              {!isCollapsed && isSetupExpanded && (
-                <div className="pl-11 pr-3 py-1 space-y-1 text-xs text-[#A1A1AA]">
-                  <div className="py-1 hover:text-white cursor-pointer">API Keys</div>
-                  <div className="py-1 hover:text-white cursor-pointer">Model Integration</div>
-                  <div className="py-1 hover:text-white cursor-pointer">Data Connectors</div>
-                </div>
-              )}
-            </div>
-
-            {/* 2. Dashboard (Active & Expanded with Nested Requests) */}
+            {/* 2. Dashboard (Active container with rounded orange badge #F26522) */}
             <div className="w-full space-y-1">
               <button
-                onClick={() => {
-                  handleSelectNav('dashboard');
-                  setIsDashboardExpanded((prev) => !prev);
-                }}
-                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-[12px] text-sm font-semibold transition-all cursor-pointer shadow-sm ${
-                  selectedNav === 'dashboard'
-                    ? 'bg-[#F26522] text-white shadow-[0_2px_12px_rgba(242,101,34,0.35)]'
-                    : 'text-[#D4D4D8] hover:text-white hover:bg-white/[0.04]'
-                }`}
-                title="Dashboard"
+                type="button"
+                onClick={handleGraphClick}
+                className="w-full flex items-center justify-between px-3 py-2.5 rounded-[10px] text-sm font-semibold bg-[#F26522] text-white shadow-sm transition-all cursor-pointer"
+                title="Dashboard (Memory Graph)"
               >
-                <div className="flex items-center gap-3.5 truncate">
-                  <Home
-                    size={19}
-                    className={`shrink-0 ${selectedNav === 'dashboard' ? 'text-white' : 'text-[#A1A1AA]'}`}
-                  />
-                  {!isCollapsed && <span className="truncate">Dashboard</span>}
+                <div className="flex items-center gap-3 truncate">
+                  <Home size={18} className="text-white shrink-0" />
+                  <span className="truncate">Dashboard</span>
                 </div>
-                {!isCollapsed && (
-                  <ChevronDown
-                    size={16}
-                    className={`shrink-0 transition-transform duration-200 ${
-                      selectedNav === 'dashboard' ? 'text-white' : 'text-[#71717A]'
-                    } ${!isDashboardExpanded ? '-rotate-90' : ''}`}
-                  />
-                )}
+                <ChevronDown size={14} className="text-white shrink-0" />
               </button>
 
-              {/* Nested Sub-item: Requests */}
-              {isDashboardExpanded && (
-                <div className="w-full">
-                  <button
-                    onClick={() => handleSelectNav('requests')}
-                    className={`w-full flex items-center gap-3 py-2 rounded-[8px] text-sm transition-colors cursor-pointer ${
-                      isCollapsed ? 'justify-center px-2' : 'pl-11 pr-3.5'
-                    } ${
-                      selectedNav === 'requests'
-                        ? 'text-white bg-white/[0.08] font-semibold'
-                        : 'text-[#D4D4D8] hover:text-white hover:bg-white/[0.03]'
-                    }`}
-                    title="Requests"
-                  >
-                    <History size={16} className="text-[#A1A1AA] shrink-0" />
-                    {!isCollapsed && <span className="truncate">Requests</span>}
-                  </button>
-                </div>
-              )}
-            </div>
-
-            {/* 3. Instances */}
-            <div className="w-full">
-              <button
-                onClick={() => {
-                  handleSelectNav('instances');
-                  setIsInstancesExpanded((prev) => !prev);
-                }}
-                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-[10px] text-sm font-medium transition-colors cursor-pointer group ${
-                  selectedNav === 'instances'
-                    ? 'text-white bg-white/[0.06]'
-                    : 'text-[#D4D4D8] hover:text-white hover:bg-white/[0.04]'
-                }`}
-                title="Instances"
-              >
-                <div className="flex items-center gap-3.5 truncate">
-                  <Layers size={19} className="text-[#A1A1AA] group-hover:text-white shrink-0" />
-                  {!isCollapsed && <span className="truncate">Instances</span>}
-                </div>
-                {!isCollapsed && (
-                  <ChevronRight
-                    size={16}
-                    className={`text-[#71717A] transition-transform duration-200 shrink-0 ${
-                      isInstancesExpanded ? 'rotate-90 text-white' : 'group-hover:text-[#A1A1AA]'
-                    }`}
-                  />
-                )}
-              </button>
-
-              {!isCollapsed && isInstancesExpanded && (
-                <div className="pl-11 pr-3 py-1 space-y-1 text-xs text-[#A1A1AA]">
-                  <div className="py-1 hover:text-white cursor-pointer">Stark Production</div>
-                  <div className="py-1 hover:text-white cursor-pointer">Wayne Sandbox</div>
-                  <div className="py-1 hover:text-white cursor-pointer">Omni Local Node</div>
-                </div>
-              )}
-            </div>
-
-            {/* 4. Memories */}
-            <div className="w-full">
-              <button
-                onClick={() => {
-                  handleSelectNav('memories');
-                  setIsMemoriesExpanded((prev) => !prev);
-                }}
-                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-[10px] text-sm font-medium transition-colors cursor-pointer group ${
-                  selectedNav === 'memories'
-                    ? 'text-white bg-white/[0.06]'
-                    : 'text-[#D4D4D8] hover:text-white hover:bg-white/[0.04]'
-                }`}
-                title="Memories"
-              >
-                <div className="flex items-center gap-3.5 truncate">
-                  <MemoriesIcon className="size-[19px] text-[#A1A1AA] group-hover:text-white shrink-0" />
-                  {!isCollapsed && <span className="truncate">Memories</span>}
-                </div>
-                {!isCollapsed && (
-                  <ChevronRight
-                    size={16}
-                    className={`text-[#71717A] transition-transform duration-200 shrink-0 ${
-                      isMemoriesExpanded ? 'rotate-90 text-white' : 'group-hover:text-[#A1A1AA]'
-                    }`}
-                  />
-                )}
-              </button>
-
-              {!isCollapsed && isMemoriesExpanded && (
-                <div className="pl-11 pr-3 py-1 space-y-1 text-xs text-[#A1A1AA]">
-                  <div className="py-1 hover:text-white cursor-pointer">Spatial Scope Map</div>
-                  <div className="py-1 hover:text-white cursor-pointer">Historical Evolution</div>
-                  <div className="py-1 hover:text-white cursor-pointer">Vector Embeddings</div>
-                </div>
-              )}
-            </div>
-
-            {/* 5. Settings */}
-            <div className="w-full">
-              <button
-                onClick={() => {
-                  handleSelectNav('settings');
-                  setIsSettingsExpanded((prev) => !prev);
-                }}
-                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-[10px] text-sm font-medium transition-colors cursor-pointer group ${
-                  selectedNav === 'settings'
-                    ? 'text-white bg-white/[0.06]'
-                    : 'text-[#D4D4D8] hover:text-white hover:bg-white/[0.04]'
-                }`}
-                title="Settings"
-              >
-                <div className="flex items-center gap-3.5 truncate">
-                  <Settings size={19} className="text-[#A1A1AA] group-hover:text-white shrink-0" />
-                  {!isCollapsed && <span className="truncate">Settings</span>}
-                </div>
-                {!isCollapsed && (
-                  <ChevronRight
-                    size={16}
-                    className={`text-[#71717A] transition-transform duration-200 shrink-0 ${
-                      isSettingsExpanded ? 'rotate-90 text-white' : 'group-hover:text-[#A1A1AA]'
-                    }`}
-                  />
-                )}
-              </button>
-
-              {!isCollapsed && isSettingsExpanded && (
-                <div className="pl-11 pr-3 py-1 space-y-1 text-xs text-[#A1A1AA]">
-                  <div className="py-1 hover:text-white cursor-pointer">Organization & Roles</div>
-                  <div className="py-1 hover:text-white cursor-pointer">Security & Audit</div>
-                  <div className="py-1 hover:text-white cursor-pointer">Billing & Invoices</div>
-                </div>
-              )}
-            </div>
-
-            {/* 6. Synap Doc (Direct Document Link) */}
-            <div className="w-full">
-              <button
-                onClick={() => handleSelectNav('synap-doc')}
-                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-[10px] text-sm font-medium transition-colors cursor-pointer group ${
-                  selectedNav === 'synap-doc'
-                    ? 'text-white bg-white/[0.06]'
-                    : 'text-[#D4D4D8] hover:text-white hover:bg-white/[0.04]'
-                }`}
-                title="Synap Doc"
-              >
-                <div className="flex items-center gap-3.5 truncate">
-                  <FileText size={19} className="text-[#A1A1AA] group-hover:text-white shrink-0" />
-                  {!isCollapsed && <span className="truncate">Synap Doc</span>}
-                </div>
-              </button>
-            </div>
-          </nav>
-        </div>
-
-        {/* Flexible Empty Space in the Middle */}
-        <div className="flex-1 min-h-[30px]" />
-
-        {/* Bottom Section: Balance Left Card + User Profile */}
-        <div className="w-full space-y-4 pt-2">
-          {/* Balance Left Card */}
-          {!isCollapsed ? (
-            <div className="w-full bg-[#141413] border border-white/[0.08] rounded-[16px] p-4 flex flex-col gap-2.5 shadow-sm">
-              {/* Header Row: Balance Left & 100% */}
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-[#A1A1AA] font-normal">Balance left</span>
-                <span className="text-sm font-bold text-white font-mono">100%</span>
-              </div>
-
-              {/* Progress Bar (Mint Green) */}
-              <div className="w-full h-1.5 bg-[#262624] rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-[#34D399] rounded-full transition-all duration-300"
-                  style={{ width: '100%' }}
-                />
-              </div>
-
-              {/* Bottom Row: $10 of $10 & Upgrade link */}
-              <div className="flex items-center justify-between pt-0.5">
-                <span className="text-xs text-[#A1A1AA] font-mono">$10 of $10</span>
+              {/* Nested Sub-items under Dashboard: Graph (ACTIVE) & Requests (DISABLED) */}
+              <div className="w-full space-y-0.5 pt-0.5">
+                {/* A. Graph: The primary working view where everything is! */}
                 <button
-                  onClick={() => setIsUpgradeModalOpen(true)}
-                  className="text-xs font-semibold text-[#F26522] hover:text-[#ff7a38] flex items-center gap-0.5 transition-colors cursor-pointer"
+                  type="button"
+                  onClick={handleGraphClick}
+                  className="w-full flex items-center justify-between pl-9 pr-3 py-1.5 rounded-[7px] text-xs font-semibold bg-white/[0.08] text-white transition-colors cursor-pointer"
+                  title="Memory Graph (Active)"
                 >
-                  <span>Upgrade</span>
-                  <ArrowUpRight size={13} className="stroke-[2.5]" />
+                  <div className="flex items-center gap-2.5 truncate">
+                    <Network size={14} className="text-[#F26522] shrink-0" />
+                    <span className="truncate">Graph</span>
+                  </div>
+                  <span className="size-1.5 rounded-full bg-[#34D399] shadow-[0_0_6px_#34D399] shrink-0" />
+                </button>
+
+                {/* B. Requests (Disabled: only graph works) */}
+                <button
+                  type="button"
+                  onClick={() => handleDisabledNavClick('Requests')}
+                  className="w-full flex items-center gap-2.5 pl-9 pr-3 py-1.5 rounded-[7px] text-xs text-[#A1A1AA] hover:text-white hover:bg-white/[0.03] transition-colors cursor-pointer"
+                  title="Requests"
+                >
+                  <History size={14} className="text-[#71717A] shrink-0" />
+                  <span className="truncate">Requests</span>
                 </button>
               </div>
             </div>
-          ) : (
-            /* Icon mode for collapsed state */
-            <div
-              onClick={() => setIsUpgradeModalOpen(true)}
-              title="Balance left: 100% ($10 of $10) - Click to upgrade"
-              className="flex flex-col items-center justify-center p-2 rounded-[10px] bg-[#141413] border border-white/[0.08] text-[#34D399] cursor-pointer hover:bg-white/[0.06]"
+
+            {/* 3. Instances (Disabled: only graph works) */}
+            <button
+              type="button"
+              onClick={() => handleDisabledNavClick('Instances')}
+              className="w-full flex items-center justify-between px-3 py-2.5 rounded-[9px] text-sm font-medium text-[#D4D4D8] hover:text-white hover:bg-white/[0.03] transition-colors cursor-pointer group"
+              title="Instances"
             >
-              <CreditCard size={18} />
-              <span className="text-[9px] font-mono mt-1 text-white">100%</span>
+              <div className="flex items-center gap-3 truncate">
+                <Layers size={18} className="text-[#A1A1AA] group-hover:text-white shrink-0" />
+                <span className="truncate">Instances</span>
+              </div>
+              <ChevronRight size={14} className="text-[#71717A] group-hover:text-[#A1A1AA] shrink-0" />
+            </button>
+
+            {/* 4. Memories (Disabled: only graph works) */}
+            <button
+              type="button"
+              onClick={handleGraphClick}
+              className="w-full flex items-center justify-between px-3 py-2.5 rounded-[9px] text-sm font-medium text-[#D4D4D8] hover:text-white hover:bg-white/[0.03] transition-colors cursor-pointer group"
+              title="Memories"
+            >
+              <div className="flex items-center gap-3 truncate">
+                <MemoriesIcon className="size-[18px] text-[#A1A1AA] group-hover:text-white shrink-0" />
+                <span className="truncate">Memories</span>
+              </div>
+              <ChevronRight size={14} className="text-[#71717A] group-hover:text-[#A1A1AA] shrink-0" />
+            </button>
+
+            {/* 5. Settings (Disabled: only graph works) */}
+            <button
+              type="button"
+              onClick={() => handleDisabledNavClick('Settings')}
+              className="w-full flex items-center justify-between px-3 py-2.5 rounded-[9px] text-sm font-medium text-[#D4D4D8] hover:text-white hover:bg-white/[0.03] transition-colors cursor-pointer group"
+              title="Settings"
+            >
+              <div className="flex items-center gap-3 truncate">
+                <Settings size={18} className="text-[#A1A1AA] group-hover:text-white shrink-0" />
+                <span className="truncate">Settings</span>
+              </div>
+              <ChevronRight size={14} className="text-[#71717A] group-hover:text-[#A1A1AA] shrink-0" />
+            </button>
+
+            {/* 6. Synap Doc (Disabled: only graph works) */}
+            <button
+              type="button"
+              onClick={() => handleDisabledNavClick('Synap Doc')}
+              className="w-full flex items-center justify-between px-3 py-2.5 rounded-[9px] text-sm font-medium text-[#D4D4D8] hover:text-white hover:bg-white/[0.03] transition-colors cursor-pointer group"
+              title="Synap Doc"
+            >
+              <div className="flex items-center gap-3 truncate">
+                <FileText size={18} className="text-[#A1A1AA] group-hover:text-white shrink-0" />
+                <span className="truncate">Synap Doc</span>
+              </div>
+            </button>
+          </nav>
+
+          {/* Feedback notice when non-graph item is clicked */}
+          {feedbackNotice && (
+            <div className="mx-1 px-2.5 py-1.5 rounded-[8px] bg-[#F26522]/15 border border-[#F26522]/30 text-[11px] text-[#F26522] text-center animate-in fade-in duration-150">
+              {feedbackNotice}
             </div>
           )}
+        </div>
+
+        {/* Middle Empty Flexible Space */}
+        <div className="flex-1 min-h-[40px]" />
+
+        {/* Bottom Section: Balance Left Card + User Profile */}
+        <div className="w-full space-y-3 pt-2">
+          {/* Balance Left Card */}
+          <div className="w-full bg-[#141413] border border-white/[0.08] rounded-[14px] p-3.5 flex flex-col gap-2.5 shadow-sm">
+            {/* Header Row: Balance Left & 100% */}
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-[#A1A1AA] font-normal">Balance left</span>
+              <span className="text-sm font-bold text-white font-mono">100%</span>
+            </div>
+
+            {/* Progress Bar (Mint Green) */}
+            <div className="w-full h-1.5 bg-[#262624] rounded-full overflow-hidden">
+              <div
+                className="h-full bg-[#34D399] rounded-full transition-all duration-300"
+                style={{ width: '100%' }}
+              />
+            </div>
+
+            {/* Bottom Row: $10 of $10 & Upgrade link */}
+            <div className="flex items-center justify-between pt-0.5">
+              <span className="text-xs text-[#A1A1AA] font-mono">$10 of $10</span>
+              <button
+                type="button"
+                onClick={() => setIsUpgradeModalOpen(true)}
+                className="text-xs font-semibold text-[#F26522] hover:text-[#ff7a38] flex items-center gap-0.5 transition-colors cursor-pointer"
+              >
+                <span>Upgrade</span>
+                <ArrowUpRight size={13} className="stroke-[2.5]" />
+              </button>
+            </div>
+          </div>
 
           {/* User Profile Row */}
           <div className="relative w-full">
             <button
+              type="button"
               onClick={() => setIsUserMenuOpen((prev) => !prev)}
-              className={`w-full flex items-center justify-between p-2 rounded-[12px] hover:bg-white/[0.05] transition-colors cursor-pointer group ${
-                isCollapsed ? 'justify-center' : ''
-              }`}
+              className="w-full flex items-center justify-between p-1.5 rounded-[10px] hover:bg-white/[0.04] transition-colors cursor-pointer group"
               title="sahshubham953 (sahshubham953@...)"
             >
-              <div className="flex items-center gap-3 truncate">
+              <div className="flex items-center gap-2.5 truncate">
                 {/* Avatar with SA */}
-                <div className="size-9 rounded-full bg-[#F26522] text-white font-bold text-xs flex items-center justify-center shrink-0 shadow-sm select-none">
+                <div className="size-8 rounded-full bg-[#F26522] text-white font-bold text-xs flex items-center justify-center shrink-0 shadow-sm select-none">
                   SA
                 </div>
 
                 {/* Username & Truncated Email */}
-                {!isCollapsed && (
-                  <div className="flex flex-col text-left truncate">
-                    <span className="text-sm font-semibold text-white tracking-tight leading-tight truncate">
-                      sahshubham953
-                    </span>
-                    <span className="text-xs text-[#8E8E93] truncate leading-tight">
-                      sahshubham953@...
-                    </span>
-                  </div>
-                )}
+                <div className="flex flex-col text-left truncate">
+                  <span className="text-sm font-semibold text-white tracking-tight leading-tight truncate">
+                    sahshubham953
+                  </span>
+                  <span className="text-[11px] text-[#8E8E93] truncate leading-tight">
+                    sahshubham953@...
+                  </span>
+                </div>
               </div>
 
               {/* Account Switcher Icon */}
-              {!isCollapsed && (
-                <ChevronsUpDown
-                  size={16}
-                  className="text-[#8E8E93] group-hover:text-white transition-colors shrink-0"
-                />
-              )}
+              <ChevronsUpDown
+                size={14}
+                className="text-[#8E8E93] group-hover:text-white transition-colors shrink-0"
+              />
             </button>
 
             {/* Account Switcher Popover Menu */}
             {isUserMenuOpen && (
-              <div className="absolute bottom-full left-0 mb-2 w-64 bg-[#181816] border border-white/[0.1] rounded-[12px] p-2 shadow-2xl text-xs z-50 animate-in fade-in slide-in-from-bottom-2 duration-150">
+              <div className="absolute bottom-full left-0 mb-2 w-56 bg-[#181816] border border-white/[0.1] rounded-[12px] p-2 shadow-2xl text-xs z-50 animate-in fade-in slide-in-from-bottom-2 duration-150">
                 <div className="px-3 py-2 border-b border-white/[0.08]">
                   <p className="font-semibold text-white">sahshubham953</p>
-                  <p className="text-[#8E8E93] truncate">sahshubham953@synap.maximem.io</p>
+                  <p className="text-[#8E8E93] truncate text-[10px]">sahshubham953@synap.maximem.io</p>
                 </div>
                 <div className="py-1">
-                  <div className="flex items-center justify-between px-3 py-2 rounded-[8px] hover:bg-white/[0.05] cursor-pointer text-[#D4D4D8]">
+                  <div className="flex items-center justify-between px-3 py-1.5 rounded-[7px] hover:bg-white/[0.05] cursor-pointer text-[#D4D4D8]">
                     <span>Current Workspace</span>
-                    <Check size={14} className="text-[#F26522]" />
-                  </div>
-                  <div className="flex items-center justify-between px-3 py-2 rounded-[8px] hover:bg-white/[0.05] cursor-pointer text-[#D4D4D8]">
-                    <span>Stark Industries HQ</span>
+                    <Check size={13} className="text-[#F26522]" />
                   </div>
                   <div
                     onClick={() => {
                       setIsUpgradeModalOpen(true);
                       setIsUserMenuOpen(false);
                     }}
-                    className="flex items-center gap-2 px-3 py-2 rounded-[8px] hover:bg-white/[0.05] cursor-pointer text-[#F26522] font-medium"
+                    className="flex items-center gap-2 px-3 py-1.5 rounded-[7px] hover:bg-white/[0.05] cursor-pointer text-[#F26522] font-medium"
                   >
-                    <Sparkles size={14} />
+                    <Sparkles size={13} />
                     <span>Manage Subscription</span>
                   </div>
                 </div>
                 <div className="border-t border-white/[0.08] pt-1">
                   <div
                     onClick={() => setIsUserMenuOpen(false)}
-                    className="flex items-center gap-2 px-3 py-2 rounded-[8px] hover:bg-white/[0.05] cursor-pointer text-[#EF4444]"
+                    className="flex items-center gap-2 px-3 py-1.5 rounded-[7px] hover:bg-white/[0.05] cursor-pointer text-[#EF4444]"
                   >
-                    <LogOut size={14} />
+                    <LogOut size={13} />
                     <span>Sign Out</span>
                   </div>
                 </div>
@@ -489,52 +353,54 @@ export function GraphSidebar({
 
       {/* Subscription Upgrade Modal */}
       {isUpgradeModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-[#141413] border border-white/[0.12] rounded-[20px] max-w-md w-full p-6 shadow-2xl space-y-5 animate-in fade-in zoom-in-95 duration-150">
-            <div className="flex items-center justify-between border-b border-white/[0.08] pb-4">
+        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-[#141413] border border-white/[0.12] rounded-[18px] max-w-sm w-full p-5 shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between border-b border-white/[0.08] pb-3">
               <div className="flex items-center gap-2.5">
-                <div className="size-8 rounded-full bg-[#F26522]/20 border border-[#F26522]/40 flex items-center justify-center text-[#F26522]">
-                  <Sparkles size={16} />
+                <div className="size-7 rounded-full bg-[#F26522]/20 border border-[#F26522]/40 flex items-center justify-center text-[#F26522]">
+                  <Sparkles size={15} />
                 </div>
                 <div>
-                  <h3 className="font-bold text-white text-base">Upgrade Synap Plan</h3>
-                  <p className="text-xs text-[#8E8E93]">Unlock unlimited memories and higher compute</p>
+                  <h3 className="font-bold text-white text-sm">Upgrade Synap Plan</h3>
+                  <p className="text-[11px] text-[#8E8E93]">Unlimited spatial memories & graph sync</p>
                 </div>
               </div>
               <button
+                type="button"
                 onClick={() => setIsUpgradeModalOpen(false)}
-                className="text-[#8E8E93] hover:text-white p-1 rounded-md"
+                className="text-[#8E8E93] hover:text-white p-1 rounded-md text-xs"
               >
                 ✕
               </button>
             </div>
 
-            <div className="space-y-3 bg-[#1B1B19] p-4 rounded-[12px] border border-white/[0.06]">
+            <div className="space-y-2 bg-[#1B1B19] p-3.5 rounded-[10px] border border-white/[0.06]">
               <div className="flex items-baseline justify-between">
-                <span className="font-semibold text-white">Pro Dedicated Node</span>
-                <span className="text-xl font-bold text-white font-mono">$49<span className="text-xs text-[#8E8E93] font-normal">/mo</span></span>
+                <span className="font-semibold text-white text-xs">Pro Dedicated Node</span>
+                <span className="text-lg font-bold text-white font-mono">$49<span className="text-[10px] text-[#8E8E93] font-normal">/mo</span></span>
               </div>
-              <ul className="text-xs text-[#D4D4D8] space-y-1.5 list-disc list-inside">
+              <ul className="text-[11px] text-[#D4D4D8] space-y-1 list-disc list-inside">
                 <li>Unlimited spatial memory storage</li>
                 <li>Real-time inter-agent graph sync</li>
                 <li>Zero-latency vector search index</li>
-                <li>Priority 24/7 dedicated support</li>
               </ul>
             </div>
 
-            <div className="flex items-center justify-end gap-3 pt-2">
+            <div className="flex items-center justify-end gap-2.5 pt-1">
               <button
+                type="button"
                 onClick={() => setIsUpgradeModalOpen(false)}
-                className="px-4 py-2 rounded-[8px] text-xs text-[#D4D4D8] hover:text-white hover:bg-white/[0.06] transition-colors"
+                className="px-3.5 py-1.5 rounded-[7px] text-xs text-[#D4D4D8] hover:text-white hover:bg-white/[0.06] transition-colors"
               >
                 Cancel
               </button>
               <button
+                type="button"
                 onClick={() => {
                   alert('Thank you for choosing Maximem Synap Pro! Account upgraded.');
                   setIsUpgradeModalOpen(false);
                 }}
-                className="px-5 py-2 rounded-[8px] text-xs font-semibold bg-[#F26522] hover:bg-[#ff7a38] text-white shadow-md transition-colors"
+                className="px-4 py-1.5 rounded-[7px] text-xs font-semibold bg-[#F26522] hover:bg-[#ff7a38] text-white shadow-md transition-colors"
               >
                 Confirm Upgrade ($49)
               </button>

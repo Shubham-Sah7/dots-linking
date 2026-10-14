@@ -9,7 +9,8 @@ import { DashboardModeSwitcher, DashboardMode } from '@/components/dashboard-mod
 
 function MainDashboardContent() {
   const searchParams = useSearchParams();
-  const initialMode = (searchParams.get('view') as DashboardMode) || 'rescue';
+  const initialMode = (searchParams.get('view') as DashboardMode) || 'synap';
+  const showSwitcher = searchParams.get('switcher') === 'true';
   const [currentMode, setCurrentMode] = useState<DashboardMode>(initialMode);
 
   return (
@@ -18,13 +19,15 @@ function MainDashboardContent() {
         currentMode === 'synap' ? 'h-screen overflow-hidden' : 'min-h-screen'
       }`}
     >
-      {/* Top Project Switcher Bar */}
-      <DashboardModeSwitcher
-        currentMode={currentMode}
-        onModeChange={setCurrentMode}
-      />
+      {/* Top Project Switcher Bar (only when explicitly requested via ?switcher=true) */}
+      {showSwitcher && (
+        <DashboardModeSwitcher
+          currentMode={currentMode}
+          onModeChange={setCurrentMode}
+        />
+      )}
 
-      {/* Active Dashboard View: 1. Legacy Recovery (Default), 2. Memory Explorer, 3. AI Code Optimization */}
+      {/* Active Dashboard View: Memory Map Graph is default where everything is */}
       {currentMode === 'rescue' && <RescueDashboardView />}
       {currentMode === 'synap' && <SynapMemoryView />}
       {currentMode === 'jev' && <JevDashboardView />}
