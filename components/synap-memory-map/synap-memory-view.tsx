@@ -15,6 +15,7 @@ import { CanvasBottomControls } from './canvas-bottom-controls';
 import { MemoryTableView } from './memory-table-view';
 import { FounderGuideBanner } from './founder-guide-banner';
 import { ReferencePatternModal } from './dotted-pattern';
+import { GraphSidebar, NavItemKey } from './graph-sidebar';
 
 export function SynapMemoryView() {
   const [activeCustomer, setActiveCustomer] = useState<CustomerScope | null>(null);
@@ -28,6 +29,7 @@ export function SynapMemoryView() {
   const [isGuideOpen, setIsGuideOpen] = useState<boolean>(false);
   const [isPatternModalOpen, setIsPatternModalOpen] = useState<boolean>(false);
   const [patternMode, setPatternMode] = useState<'integrated' | 'reference'>('integrated');
+  const [activeNav, setActiveNav] = useState<NavItemKey>('dashboard');
   const [cameraFocusTarget, setCameraFocusTarget] = useState<{
     x: number;
     y: number;
@@ -160,98 +162,124 @@ export function SynapMemoryView() {
     setIsDetailPanelOpen((prev) => !prev);
   }, []);
 
+  const handleNavigate = useCallback(
+    (key: NavItemKey) => {
+      setActiveNav(key);
+      if (key === 'synap-doc' || key === 'setup') {
+        setIsGuideOpen(true);
+      } else if (key === 'requests') {
+        setIsTableView(true);
+      } else if (key === 'dashboard' || key === 'memories') {
+        setIsTableView(false);
+        if (key === 'memories') {
+          handleResetView();
+        }
+      }
+    },
+    [handleResetView]
+  );
+
   return (
-    <div className="flex-1 min-h-0 w-full bg-[#1B1B19] text-white flex flex-col font-sans select-none overflow-hidden">
-      {/* 1. Header with Title, Metrics, Search, Scope Breadcrumb & Filters */}
-      <GraphFilterHeader
-        data={SYNAP_CLIENT_DATA}
-        activeCustomer={activeCustomer}
-        activeUser={activeUser}
-        selectedMemory={selectedMemory}
-        categoryFilter={categoryFilter}
-        statusFilter={statusFilter}
-        onSelectCustomer={handleSelectCustomer}
-        onSelectUser={handleSelectUser}
-        onSelectMemory={handleSelectMemory}
-        onCategoryFilterChange={setCategoryFilter}
-        onStatusFilterChange={setStatusFilter}
-        onResetView={handleResetView}
-        isTableView={isTableView}
-        onToggleTableView={() => setIsTableView((prev) => !prev)}
-        isDetailPanelOpen={isDetailPanelOpen}
-        onToggleDetailPanel={handleToggleDetailPanel}
+    <div className="flex-1 min-h-0 w-full bg-[#1B1B19] text-white flex flex-row font-sans select-none overflow-hidden">
+      {/* Fixed Full-Height Left Navigation Sidebar matching reference image */}
+      <GraphSidebar
+        activeNav={activeNav}
+        onNavigate={handleNavigate}
       />
 
-      {/* 2. Main Content Area */}
-      {isTableView ? (
-        <MemoryTableView
+      {/* Main Content Area (Header, Canvas, Detail Panel) */}
+      <div className="flex-1 min-w-0 flex flex-col h-full overflow-hidden">
+        {/* 1. Header with Title, Metrics, Search, Scope Breadcrumb & Filters */}
+        <GraphFilterHeader
           data={SYNAP_CLIENT_DATA}
-          onSelectMemory={(mem) => {
-            handleSelectMemory(mem);
-            setIsTableView(false);
-          }}
+          activeCustomer={activeCustomer}
+          activeUser={activeUser}
+          selectedMemory={selectedMemory}
+          categoryFilter={categoryFilter}
+          statusFilter={statusFilter}
+          onSelectCustomer={handleSelectCustomer}
+          onSelectUser={handleSelectUser}
+          onSelectMemory={handleSelectMemory}
+          onCategoryFilterChange={setCategoryFilter}
+          onStatusFilterChange={setStatusFilter}
+          onResetView={handleResetView}
+          isTableView={isTableView}
+          onToggleTableView={() => setIsTableView((prev) => !prev)}
+          isDetailPanelOpen={isDetailPanelOpen}
+          onToggleDetailPanel={handleToggleDetailPanel}
         />
-      ) : (
-        <div className="relative w-full flex-1 flex flex-row overflow-hidden min-h-0">
-          {/* Central Interactive Graph Canvas */}
-          <div className="relative flex-1 flex flex-col min-w-0 h-full">
-            <MemoryMapCanvas
-              data={SYNAP_CLIENT_DATA}
-              activeCustomer={activeCustomer}
-              activeUser={activeUser}
-              selectedMemory={selectedMemory}
-              categoryFilter={categoryFilter}
-              statusFilter={statusFilter}
-              onSelectCustomer={handleSelectCustomer}
-              onSelectUser={handleSelectUser}
-              onSelectMemory={handleSelectMemory}
-              zoomLevel={zoomLevel}
-              onZoomChange={setZoomLevel}
-              cameraFocusTarget={cameraFocusTarget}
-              isDetailPanelOpen={isDetailPanelOpen}
-              patternMode={patternMode}
-            />
 
-            {/* Bottom Legend & Camera Zoom Controls */}
-            <CanvasBottomControls
-              zoomLevel={zoomLevel}
-              onZoomIn={handleZoomIn}
-              onZoomOut={handleZoomOut}
-              onResetZoom={handleResetView}
-              onOpenGuide={() => setIsGuideOpen(true)}
-              isDetailPanelOpen={isDetailPanelOpen}
-              onToggleDetailPanel={handleToggleDetailPanel}
-              patternMode={patternMode}
-              onTogglePatternMode={() =>
-                setPatternMode((prev) => (prev === 'reference' ? 'integrated' : 'reference'))
-              }
-              onOpenPatternModal={() => setIsPatternModalOpen(true)}
-              onFocusScopeTier={handleFocusScopeTier}
-            />
-          </div>
+        {/* 2. Main Content Area */}
+        {isTableView ? (
+          <MemoryTableView
+            data={SYNAP_CLIENT_DATA}
+            onSelectMemory={(mem) => {
+              handleSelectMemory(mem);
+              setIsTableView(false);
+            }}
+          />
+        ) : (
+          <div className="relative w-full flex-1 flex flex-row overflow-hidden min-h-0">
+            {/* Central Interactive Graph Canvas */}
+            <div className="relative flex-1 flex flex-col min-w-0 h-full">
+              <MemoryMapCanvas
+                data={SYNAP_CLIENT_DATA}
+                activeCustomer={activeCustomer}
+                activeUser={activeUser}
+                selectedMemory={selectedMemory}
+                categoryFilter={categoryFilter}
+                statusFilter={statusFilter}
+                onSelectCustomer={handleSelectCustomer}
+                onSelectUser={handleSelectUser}
+                onSelectMemory={handleSelectMemory}
+                zoomLevel={zoomLevel}
+                onZoomChange={setZoomLevel}
+                cameraFocusTarget={cameraFocusTarget}
+                isDetailPanelOpen={isDetailPanelOpen}
+                patternMode={patternMode}
+              />
 
-          {/* Contextual Side Inspection Panel */}
-          {isDetailPanelOpen && (
-            <MemoryDetailPanel
-              memory={selectedMemory}
-              data={SYNAP_CLIENT_DATA}
-              activeCustomer={activeCustomer}
-              activeUser={activeUser}
-              onSelectCustomer={handleSelectCustomer}
-              onSelectUser={handleSelectUser}
-              onSelectMemory={handleSelectMemory}
-              onClose={() => {
-                if (selectedMemory) {
-                  setSelectedMemory(null);
-                } else {
-                  setIsDetailPanelOpen(false);
+              {/* Bottom Legend & Camera Zoom Controls */}
+              <CanvasBottomControls
+                zoomLevel={zoomLevel}
+                onZoomIn={handleZoomIn}
+                onZoomOut={handleZoomOut}
+                onResetZoom={handleResetView}
+                onOpenGuide={() => setIsGuideOpen(true)}
+                isDetailPanelOpen={isDetailPanelOpen}
+                onToggleDetailPanel={handleToggleDetailPanel}
+                patternMode={patternMode}
+                onTogglePatternMode={() =>
+                  setPatternMode((prev) => (prev === 'reference' ? 'integrated' : 'reference'))
                 }
-              }}
-              onFocusMemory={handleFocusMemory}
-            />
-          )}
-        </div>
-      )}
+                onOpenPatternModal={() => setIsPatternModalOpen(true)}
+                onFocusScopeTier={handleFocusScopeTier}
+              />
+            </div>
+
+            {/* Contextual Side Inspection Panel */}
+            {isDetailPanelOpen && (
+              <MemoryDetailPanel
+                memory={selectedMemory}
+                data={SYNAP_CLIENT_DATA}
+                activeCustomer={activeCustomer}
+                activeUser={activeUser}
+                onSelectCustomer={handleSelectCustomer}
+                onSelectUser={handleSelectUser}
+                onSelectMemory={handleSelectMemory}
+                onClose={() => {
+                  if (selectedMemory) {
+                    setSelectedMemory(null);
+                  } else {
+                    setIsDetailPanelOpen(false);
+                  }
+                }}
+                onFocusMemory={handleFocusMemory}
+              />
+            )}
+          </div>
+        )}
+      </div>
 
       {/* 3. Founder Specification Guide Modal */}
       <FounderGuideBanner isOpen={isGuideOpen} onClose={() => setIsGuideOpen(false)} />
