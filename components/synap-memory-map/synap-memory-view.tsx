@@ -23,6 +23,7 @@ export function SynapMemoryView() {
   const [selectedMemory, setSelectedMemory] = useState<MemoryItem | null>(null);
   const [categoryFilter, setCategoryFilter] = useState<EntityCategory | null>(null);
   const [statusFilter, setStatusFilter] = useState<'All' | 'Active' | 'Superseded'>('All');
+  const [relationshipFilter, setRelationshipFilter] = useState<'all' | 'updates' | 'extends' | 'derives'>('all');
   const [zoomLevel, setZoomLevel] = useState<number>(0.85);
   const [isTableView, setIsTableView] = useState<boolean>(false);
   const [isDetailPanelOpen, setIsDetailPanelOpen] = useState<boolean>(true);
@@ -234,6 +235,7 @@ export function SynapMemoryView() {
                 cameraFocusTarget={cameraFocusTarget}
                 isDetailPanelOpen={isDetailPanelOpen}
                 patternMode={patternMode}
+                relationshipFilter={relationshipFilter}
               />
 
               {/* Bottom Legend & Camera Zoom Controls */}
@@ -251,6 +253,8 @@ export function SynapMemoryView() {
                 }
                 onOpenPatternModal={() => setIsPatternModalOpen(true)}
                 onFocusScopeTier={handleFocusScopeTier}
+                relationshipFilter={relationshipFilter}
+                onSelectRelationshipFilter={setRelationshipFilter}
               />
             </div>
 

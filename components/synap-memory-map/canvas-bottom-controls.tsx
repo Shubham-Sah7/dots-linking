@@ -15,6 +15,8 @@ interface CanvasBottomControlsProps {
   onTogglePatternMode?: () => void;
   onOpenPatternModal?: () => void;
   onFocusScopeTier?: (tier: 'overview' | 'customer' | 'user' | 'memory') => void;
+  relationshipFilter?: 'all' | 'updates' | 'extends' | 'derives';
+  onSelectRelationshipFilter?: (type: 'all' | 'updates' | 'extends' | 'derives') => void;
 }
 
 export function CanvasBottomControls({
@@ -29,43 +31,72 @@ export function CanvasBottomControls({
   onTogglePatternMode,
   onOpenPatternModal,
   onFocusScopeTier,
+  relationshipFilter = 'all',
+  onSelectRelationshipFilter,
 }: CanvasBottomControlsProps) {
+  const handleRelClick = (type: 'updates' | 'extends' | 'derives') => {
+    if (!onSelectRelationshipFilter) return;
+    if (relationshipFilter === type) {
+      onSelectRelationshipFilter('all');
+    } else {
+      onSelectRelationshipFilter(type);
+    }
+  };
+
   return (
     <div className="absolute bottom-4 inset-x-6 z-20 flex flex-wrap items-center justify-between pointer-events-none font-sans select-none gap-2">
       {/* Left Legend: Supermemory Graph Legend & Visual Grammar */}
       <div className="pointer-events-auto bg-[#141413]/92 backdrop-blur-md px-3.5 py-1.5 border border-white/[0.09] rounded-xl text-xs text-white/70 flex flex-wrap items-center gap-3.5 shadow-lg">
-        {/* Relationship Types (Supermemory Triad) */}
-        <div className="flex items-center gap-3">
+        {/* Relationship Types (Supermemory Triad: 3 Options of 3 Types) */}
+        <div className="flex items-center gap-2">
           <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-white/40">
             Edges:
           </span>
 
-          {/* Updates */}
-          <div
-            className="flex items-center gap-1.5 cursor-help"
-            title="Updates: Replaces older fact as current truth while preserving history"
+          {/* Option 1: Updates */}
+          <button
+            type="button"
+            onClick={() => handleRelClick('updates')}
+            className={`flex items-center gap-1.5 px-2 py-0.5 rounded-md transition-all cursor-pointer ${
+              relationshipFilter === 'updates'
+                ? 'bg-[#d97706]/25 border border-[#d97706] text-[#fbbf24] shadow-sm'
+                : 'hover:bg-white/[0.06] text-[#fbbf24]/80 hover:text-[#fbbf24]'
+            }`}
+            title="1. Updates: Replaces older fact as current truth while preserving history (Click to filter)"
           >
             <span className="w-3.5 h-[2px] border-b-2 border-dashed border-[#d97706]" />
-            <span className="text-[11px] text-[#fbbf24] font-medium">Updates</span>
-          </div>
+            <span className="text-[11px] font-medium">Updates</span>
+          </button>
 
-          {/* Extends */}
-          <div
-            className="flex items-center gap-1.5 cursor-help"
-            title="Extends: Adds context without invalidating the existing memory"
+          {/* Option 2: Extends */}
+          <button
+            type="button"
+            onClick={() => handleRelClick('extends')}
+            className={`flex items-center gap-1.5 px-2 py-0.5 rounded-md transition-all cursor-pointer ${
+              relationshipFilter === 'extends'
+                ? 'bg-[#f26522]/25 border border-[#f26522] text-[#ff8a4c] shadow-sm'
+                : 'hover:bg-white/[0.06] text-[#ff8a4c]/80 hover:text-[#ff8a4c]'
+            }`}
+            title="2. Extends: Adds context without invalidating the existing memory (Click to filter)"
           >
             <span className="w-3.5 h-[2px] bg-[#f26522]" />
-            <span className="text-[11px] text-[#ff8a4c] font-medium">Extends</span>
-          </div>
+            <span className="text-[11px] font-medium">Extends</span>
+          </button>
 
-          {/* Derives */}
-          <div
-            className="flex items-center gap-1.5 cursor-help"
-            title="Derives: A memory is inferred from multiple existing memories"
+          {/* Option 3: Derives */}
+          <button
+            type="button"
+            onClick={() => handleRelClick('derives')}
+            className={`flex items-center gap-1.5 px-2 py-0.5 rounded-md transition-all cursor-pointer ${
+              relationshipFilter === 'derives'
+                ? 'bg-[#38bdf8]/25 border border-[#38bdf8] text-[#38bdf8] shadow-sm'
+                : 'hover:bg-white/[0.06] text-[#38bdf8]/80 hover:text-[#38bdf8]'
+            }`}
+            title="3. Derives: A memory is inferred from multiple existing memories (Click to filter)"
           >
             <span className="w-3.5 h-[2px] border-b-2 border-dotted border-[#38bdf8]" />
-            <span className="text-[11px] text-[#38bdf8] font-medium">Derives</span>
-          </div>
+            <span className="text-[11px] font-medium">Derives</span>
+          </button>
         </div>
 
         <div className="w-[1px] h-3.5 bg-white/[0.1] hidden sm:block" />

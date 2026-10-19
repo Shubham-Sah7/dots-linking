@@ -35,6 +35,7 @@ interface MemoryMapCanvasProps {
   patternMode?: 'integrated' | 'reference';
   dotSize?: number;
   dotSpacing?: number;
+  relationshipFilter?: 'all' | 'updates' | 'extends' | 'derives';
 }
 
 export function MemoryMapCanvas({
@@ -54,6 +55,7 @@ export function MemoryMapCanvas({
   patternMode = 'integrated',
   dotSize = 1.85,
   dotSpacing = 16,
+  relationshipFilter = 'all',
 }: MemoryMapCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -621,8 +623,22 @@ export function MemoryMapCanvas({
         const isHoverIncident =
           hoveredMem &&
           (rel.sourceMemoryId === hoveredMem.id || rel.targetMemoryId === hoveredMem.id);
-        const isHighlighted = isIncident || isHoverIncident;
-        const isDimmed = (selectedMemory && !isIncident) || (hoveredMem && !isHoverIncident && !isIncident);
+        const matchesRelFilter =
+          relationshipFilter === 'all' ||
+          rel.type === relationshipFilter ||
+          (relationshipFilter === 'updates' && rel.type === 'supersedes') ||
+          (relationshipFilter === 'extends' && (rel.type === 'references' || rel.type === 'informs')) ||
+          (relationshipFilter === 'derives' && (rel.type === 'derived_from' || rel.type === 'cross_scope'));
+
+        if (!matchesRelFilter) {
+          return;
+        }
+
+        const isRelTypeFilterActive = relationshipFilter !== 'all' && matchesRelFilter;
+        const isHighlighted = isIncident || isHoverIncident || isRelTypeFilterActive;
+        const isDimmed =
+          !isRelTypeFilterActive &&
+          ((selectedMemory && !isIncident) || (hoveredMem && !isHoverIncident && !isIncident));
 
         const relInfo = RELATIONSHIP_METRICS[rel.type] || {
           label: rel.type,
@@ -982,6 +998,7 @@ export function MemoryMapCanvas({
     dotSize,
     dotSpacing,
     patternMode,
+    relationshipFilter,
   ]);
 
   // Screen to World Coordinate Conversion
