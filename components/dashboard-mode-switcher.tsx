@@ -1,9 +1,9 @@
 'use client';
 
 import React from 'react';
-import { Terminal, Network, GitPullRequest } from 'lucide-react';
+import { Terminal, Network, GitPullRequest, Sparkles, Globe } from 'lucide-react';
 
-export type DashboardMode = 'rescue' | 'synap' | 'jev';
+export type DashboardMode = 'rescue' | 'synap' | 'jev' | 'visualization' | 'sphere';
 
 interface DashboardModeSwitcherProps {
   currentMode: DashboardMode;
@@ -38,9 +38,22 @@ export function DashboardModeSwitcher({
         </div>
       </div>
 
-      {/* Mode Switcher Pill with 3 Options */}
+      {/* Mode Switcher Pill */}
       <div className="flex items-center gap-2">
         <div className="flex items-center bg-[#1a1a18] border border-white/[0.09] rounded-[10px] p-1 shadow-sm">
+          {/* Option: AI Memory Story */}
+          <button
+            onClick={() => onModeChange('visualization')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[7px] text-xs font-sans transition-all duration-200 cursor-pointer ${
+              currentMode === 'visualization'
+                ? 'bg-[#f26522] text-white font-semibold shadow-[0px_2px_10px_rgba(242,101,34,0.3)]'
+                : 'text-[#a1a1aa] hover:text-white'
+            }`}
+          >
+            <Sparkles size={13} />
+            <span>AI Memory Story</span>
+          </button>
+
           {/* Option 1: Legacy Recovery */}
           <button
             onClick={() => onModeChange('rescue')}
@@ -78,6 +91,19 @@ export function DashboardModeSwitcher({
           >
             <GitPullRequest size={13} />
             <span>AI Code Optimization</span>
+          </button>
+
+          {/* Option 4: Concept 02 — Living Knowledge Sphere */}
+          <button
+            onClick={() => onModeChange('sphere')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[7px] text-xs font-sans transition-all duration-200 cursor-pointer ${
+              currentMode === 'sphere'
+                ? 'bg-[#f26522] text-white font-semibold shadow-[0px_2px_10px_rgba(242,101,34,0.3)]'
+                : 'text-[#a1a1aa] hover:text-white'
+            }`}
+          >
+            <Globe size={13} />
+            <span>Knowledge Sphere</span>
           </button>
         </div>
       </div>
