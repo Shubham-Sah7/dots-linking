@@ -7,17 +7,18 @@ import { SynapMemoryView } from '@/components/synap-memory-map/synap-memory-view
 import { JevDashboardView } from '@/components/jev-dashboard/jev-dashboard-view';
 import { AiMemoryVisualizationSection } from '@/components/ai-memory-visualization';
 import { KnowledgeSphere } from '@/components/knowledge-sphere';
+import { AgentMemoryGraph } from '@/components/agent-memory-graph';
 import { DashboardModeSwitcher, DashboardMode } from '@/components/dashboard-mode-switcher';
 
 function MainDashboardContent() {
   const searchParams = useSearchParams();
-  const initialMode = (searchParams.get('view') as DashboardMode) || 'visualization';
+  const initialMode = (searchParams.get('view') as DashboardMode) || 'sphere';
   const [currentMode, setCurrentMode] = useState<DashboardMode>(initialMode);
 
   return (
     <main
       className={`w-full bg-[#1B1B19] text-white flex flex-col ${
-        currentMode === 'synap' || currentMode === 'visualization' || currentMode === 'sphere' ? 'h-screen overflow-hidden' : 'min-h-screen'
+        currentMode === 'synap' || currentMode === 'visualization' || currentMode === 'sphere' || currentMode === 'agent' ? 'h-screen overflow-hidden' : 'min-h-screen'
       }`}
     >
       {/* Top Project Switcher Bar */}
@@ -32,12 +33,17 @@ function MainDashboardContent() {
           <AiMemoryVisualizationSection className="w-full h-full" />
         </div>
       )}
-      {currentMode === 'rescue'        && <RescueDashboardView />}
-      {currentMode === 'synap'         && <SynapMemoryView />}
-      {currentMode === 'jev'           && <JevDashboardView />}
+      {/* {currentMode === 'rescue'        && <RescueDashboardView />} */}
+      {/* {currentMode === 'synap'         && <SynapMemoryView />} */}
+      {/* {currentMode === 'jev'           && <JevDashboardView />} */}
       {currentMode === 'sphere'        && (
         <div className="w-full flex-1 flex items-center justify-center overflow-hidden">
           <KnowledgeSphere className="w-full h-full" />
+        </div>
+      )}
+      {currentMode === 'agent'         && (
+        <div className="w-full flex-1 flex items-center justify-center overflow-hidden">
+          <AgentMemoryGraph className="w-full h-full" />
         </div>
       )}
     </main>

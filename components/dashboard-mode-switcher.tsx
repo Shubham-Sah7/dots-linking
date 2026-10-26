@@ -1,9 +1,11 @@
 'use client';
 
 import React from 'react';
-import { Terminal, Network, GitPullRequest, Sparkles, Globe } from 'lucide-react';
+import { Terminal, Network, GitPullRequest, Sparkles, Globe, Cpu } from 'lucide-react';
 
-export type DashboardMode = 'rescue' | 'synap' | 'jev' | 'visualization' | 'sphere';
+import { SpaceSoundToggle } from '@/components/space-sound-toggle';
+
+export type DashboardMode = 'rescue' | 'synap' | 'jev' | 'visualization' | 'sphere' | 'agent';
 
 interface DashboardModeSwitcherProps {
   currentMode: DashboardMode;
@@ -32,14 +34,15 @@ export function DashboardModeSwitcher({
           <span className="font-sans font-bold text-lg sm:text-xl tracking-tight text-white">
             Maximem
           </span>
-          <span className="px-2 py-0.5 rounded-[5px] text-[10px] font-mono uppercase tracking-wider bg-[#f26522]/15 text-[#f26522] border border-[#f26522]/30 font-semibold">
+          <span className="px-2 py-0.5 rounded text-[10px] font-mono uppercase tracking-wider bg-[#222220] text-[#f26522] border border-[#f26522]/40 font-semibold">
             PLATFORM
           </span>
         </div>
       </div>
 
-      {/* Mode Switcher Pill */}
-      <div className="flex items-center gap-2">
+      {/* Mode Switcher Pill & Space Sound Controller */}
+      <div className="flex items-center gap-2 sm:gap-3">
+        <SpaceSoundToggle />
         <div className="flex items-center bg-[#1a1a18] border border-white/[0.09] rounded-[10px] p-1 shadow-sm">
           {/* Option: AI Memory Story */}
           <button
@@ -55,7 +58,7 @@ export function DashboardModeSwitcher({
           </button>
 
           {/* Option 1: Legacy Recovery */}
-          <button
+          {/* <button
             onClick={() => onModeChange('rescue')}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[7px] text-xs font-sans transition-all duration-200 cursor-pointer ${
               currentMode === 'rescue'
@@ -65,10 +68,10 @@ export function DashboardModeSwitcher({
           >
             <Terminal size={13} />
             <span>Legacy Recovery</span>
-          </button>
+          </button> */}
 
           {/* Option 2: Memory Explorer */}
-          <button
+          {/* <button
             onClick={() => onModeChange('synap')}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[7px] text-xs font-sans transition-all duration-200 cursor-pointer ${
               currentMode === 'synap'
@@ -78,10 +81,10 @@ export function DashboardModeSwitcher({
           >
             <Network size={13} />
             <span>Memory Explorer</span>
-          </button>
+          </button> */}
 
           {/* Option 3: AI Code Optimization */}
-          <button
+          {/* <button
             onClick={() => onModeChange('jev')}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[7px] text-xs font-sans transition-all duration-200 cursor-pointer ${
               currentMode === 'jev'
@@ -91,9 +94,9 @@ export function DashboardModeSwitcher({
           >
             <GitPullRequest size={13} />
             <span>AI Code Optimization</span>
-          </button>
+          </button> */}
 
-          {/* Option 4: Concept 02 — Living Knowledge Sphere */}
+          {/* Option 4: Living Agent Memory Graph */}
           <button
             onClick={() => onModeChange('sphere')}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[7px] text-xs font-sans transition-all duration-200 cursor-pointer ${
@@ -103,7 +106,20 @@ export function DashboardModeSwitcher({
             }`}
           >
             <Globe size={13} />
-            <span>Knowledge Sphere</span>
+            <span>Agent Memory Graph</span>
+          </button>
+
+          {/* Option 5: Option 03 — Agent Memory Lifecycle */}
+          <button
+            onClick={() => onModeChange('agent')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[7px] text-xs font-sans transition-all duration-200 cursor-pointer ${
+              currentMode === 'agent'
+                ? 'bg-[#f26522] text-white font-semibold shadow-[0px_2px_10px_rgba(242,101,34,0.3)]'
+                : 'text-[#a1a1aa] hover:text-white'
+            }`}
+          >
+            <Cpu size={13} />
+            <span>Agent Memory (Option 03)</span>
           </button>
         </div>
       </div>

@@ -3,6 +3,7 @@
 import React, { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import * as THREE from "three";
 import { Search, X, RotateCcw, ArrowRight, Sparkles, Layers, Link2, Compass } from "lucide-react";
+import { spaceSoundscape } from "@/lib/audio/space-soundscape";
 
 // ════════════════════════════════════════════════════════════════════════════
 // 1. TYPINGS & DATA MODELS
@@ -516,6 +517,7 @@ export function AiMemoryVisualizationSection({
 
   // Reset to full universe view
   const handleResetView = useCallback(() => {
+    spaceSoundscape.playGlideTransition();
     setSelectedMemoryId(null);
     setSelectedClusterId(null);
     setSearchQuery("");
@@ -534,6 +536,9 @@ export function AiMemoryVisualizationSection({
     const target = DEMO_MEMORIES.find((m) => m.id === memoryId);
     if (!target) return;
 
+    const clusterIdx = TOPIC_CLUSTERS.findIndex((c) => c.id === target.clusterId);
+    spaceSoundscape.playNodePulse(clusterIdx !== -1 ? clusterIdx : 0, 1);
+
     setSelectedMemoryId(memoryId);
     setSelectedClusterId(null);
     setIsSearchOpen(false);
@@ -548,6 +553,8 @@ export function AiMemoryVisualizationSection({
   const handleSelectCluster = useCallback((clusterId: string) => {
     const cluster = TOPIC_CLUSTERS.find((c) => c.id === clusterId);
     if (!cluster) return;
+
+    spaceSoundscape.playGlideTransition();
 
     setSelectedClusterId(clusterId);
     setSelectedMemoryId(null);
@@ -917,6 +924,7 @@ export function AiMemoryVisualizationSection({
     // ── Raycaster for Clean Hover & Click Inspection ──
     const raycaster = new THREE.Raycaster();
     const mouse = new THREE.Vector2(-1000, -1000);
+    let pendingHoverNodeId: string | null = null;
 
     // ════════════════════════════════════════════════════════════════════════
     // 7. ANIMATION & RENDER LOOP
@@ -1045,8 +1053,19 @@ export function AiMemoryVisualizationSection({
             mat.opacity = 0.05;
           }
         } else {
+          // Dynamic Level-of-Detail (LOD):
+          // Zoomed in (zoomFactor -> 0): micro-connections and deep relationships reveal with clarity
+          // Zoomed out (zoomFactor -> 1): micro-edges soften so the wide universe overview remains pristine
+          const zoomFactor = THREE.MathUtils.clamp((s.radius - 38.0) / (135.0 - 38.0), 0.0, 1.0);
+          spaceSoundscape.setZoomAtmosphere(zoomFactor);
+
+          // Cosmic Parallax: outer stardust particles exhibit subtle drift relative to camera lookAt and angle
+          particlesMesh.rotation.y = s.yaw * 0.04;
+          particlesMesh.rotation.x = s.pitch * 0.03;
+
+          const lodOpacity = 0.10 + (1.0 - zoomFactor) * 0.28;
           mat.color.setHex(0x666a74);
-          mat.opacity = 0.22;
+          mat.opacity = lodOpacity;
         }
       });
 
@@ -1122,10 +1141,17 @@ export function AiMemoryVisualizationSection({
         const memoryItem = hitProxy.userData.memory as MemoryNode;
         const visualMesh = hitProxy.userData.visualMesh as THREE.Mesh;
 
+        if (pendingHoverNodeId !== memoryItem.id) {
+          pendingHoverNodeId = memoryItem.id;
+          const clusterIdx = TOPIC_CLUSTERS.findIndex((c) => c.id === memoryItem.clusterId);
+          spaceSoundscape.playNodePulse(clusterIdx !== -1 ? clusterIdx : 0, 0);
+        }
+
         setHoveredMemoryId(memoryItem.id);
         setTooltipPos({ x: e.clientX, y: e.clientY });
         particlesMaterial.uniforms.uHoveredPos.value.copy(visualMesh.position);
       } else {
+        pendingHoverNodeId = null;
         setHoveredMemoryId(null);
         setTooltipPos(null);
         particlesMaterial.uniforms.uHoveredPos.value.set(-1000, -1000, -1000);
@@ -1170,6 +1196,9 @@ export function AiMemoryVisualizationSection({
         handleSelectMemory(memoryItem.id);
       } else {
         // Click on empty space: clear selection
+        if (selectedMemoryId || selectedClusterId) {
+          spaceSoundscape.playGlideTransition();
+        }
         setSelectedMemoryId(null);
         setSelectedClusterId(null);
       }
