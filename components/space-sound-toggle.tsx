@@ -60,7 +60,7 @@ export function SpaceSoundToggle() {
       {/* Sound Toggle Button */}
       <button
         onClick={handleToggle}
-        className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-[8px] text-xs font-mono transition-all duration-200 cursor-pointer border ${
+        className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-[4px] text-xs font-mono transition-all duration-200 cursor-pointer border ${
           !isMuted
             ? "bg-[#f26522]/15 text-[#f26522] border-[#f26522]/40 shadow-[0_0_12px_rgba(242,101,34,0.25)]"
             : "bg-[#181816]/90 text-[#71717a] hover:text-[#d4d4d8] border-white/[0.08] hover:border-white/20"
@@ -83,10 +83,10 @@ export function SpaceSoundToggle() {
 
       {/* Flyout Volume Slider Popover */}
       {showSlider && (
-        <div className="absolute right-0 top-full mt-2 z-50 p-2.5 rounded-xl bg-[#141412]/95 backdrop-blur-xl border border-white/15 shadow-[0_12px_32px_rgba(0,0,0,0.85)] flex items-center gap-2.5 min-w-[170px] animate-in fade-in zoom-in-95 duration-150">
+        <div className="absolute right-0 top-full mt-2 z-50 p-2.5 rounded-[5px] bg-[#141412]/95 backdrop-blur-xl border border-white/15 shadow-[0_12px_32px_rgba(0,0,0,0.85)] flex items-center gap-2.5 min-w-[170px] animate-in fade-in zoom-in-95 duration-150">
           <button
             onClick={handleToggle}
-            className="text-[#a1a1aa] hover:text-[#f26522] transition-colors"
+            className="text-[#a1a1aa] hover:text-[#f26522] transition-colors rounded-[2px]"
           >
             {isMuted ? <VolumeX size={14} /> : <Volume2 size={14} />}
           </button>
@@ -98,7 +98,7 @@ export function SpaceSoundToggle() {
             step="0.01"
             value={isMuted ? 0 : volume}
             onChange={handleVolumeChange}
-            className="w-full h-1 bg-[#27272a] rounded-lg appearance-none cursor-pointer accent-[#f26522]"
+            className="w-full h-1 bg-[#27272a] rounded-sm appearance-none cursor-pointer accent-[#f26522]"
           />
 
           <span className="text-[10px] font-mono text-[#a1a1aa] w-7 text-right">

@@ -2588,9 +2588,9 @@ export function AiMemoryGalaxySection({
                 handleSelectMemory(item.id);
               }}
             >
-              <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-[#0a0b10]/92 backdrop-blur-md border border-white/10 hover:border-[#f26522]/50 hover:bg-[#0e1017] shadow-[0_4px_16px_rgba(0,0,0,0.7)] group transition-all">
+              <div className="flex items-center gap-1.5 px-2 py-1 rounded-[4px] bg-[#0a0b10]/92 backdrop-blur-md border border-white/10 hover:border-[#f26522]/50 hover:bg-[#0e1017] shadow-[0_4px_16px_rgba(0,0,0,0.7)] group transition-all">
                 <span
-                  className="size-1.5 rounded-full shrink-0"
+                  className="size-1.5 rounded-[1px] shrink-0"
                   style={{
                     backgroundColor: cluster?.colorHex || "#ffffff",
                     boxShadow: `0 0 6px ${cluster?.colorHex || "#ffffff"}`,
@@ -2614,7 +2614,7 @@ export function AiMemoryGalaxySection({
         <div className="pointer-events-auto flex-1 min-w-0 flex items-center gap-1.5 overflow-x-auto scrollbar-none py-1">
           <button
             onClick={handleResetView}
-            className={`px-3 py-1.5 rounded-lg text-[11px] font-medium tracking-tight whitespace-nowrap transition-all backdrop-blur-xl border ${
+            className={`px-3 py-1.5 rounded-[4px] text-[11px] font-medium tracking-tight whitespace-nowrap transition-all backdrop-blur-xl border ${
               !selectedMemoryId && !selectedClusterId && !selectedGalaxyId && !isTourActive
                 ? "bg-white text-black border-white shadow-[0_2px_12px_rgba(255,255,255,0.2)] font-semibold"
                 : "bg-[#0c0d12]/85 text-[#9ca3af] border-white/10 hover:border-white/25 hover:text-white hover:bg-white/[0.04]"
@@ -2626,7 +2626,7 @@ export function AiMemoryGalaxySection({
           {/* Andromeda Galaxy Shortcut */}
           <button
             onClick={() => handleSelectGalaxy("galaxy-andromeda")}
-            className={`px-3 py-1.5 rounded-lg text-[11px] font-medium tracking-tight whitespace-nowrap transition-all backdrop-blur-xl border ${
+            className={`px-3 py-1.5 rounded-[4px] text-[11px] font-medium tracking-tight whitespace-nowrap transition-all backdrop-blur-xl border ${
               selectedGalaxyId === "galaxy-andromeda"
                 ? "bg-[#3b82f6] text-white border-[#3b82f6] shadow-[0_2px_12px_rgba(59,130,246,0.35)] font-semibold"
                 : "bg-[#0c0d12]/85 text-[#9ca3af] border-white/10 hover:border-white/25 hover:text-white hover:bg-white/[0.04]"
@@ -2638,7 +2638,7 @@ export function AiMemoryGalaxySection({
           {/* Triangulum Galaxy Shortcut */}
           <button
             onClick={() => handleSelectGalaxy("galaxy-triangulum")}
-            className={`px-3 py-1.5 rounded-lg text-[11px] font-medium tracking-tight whitespace-nowrap transition-all backdrop-blur-xl border ${
+            className={`px-3 py-1.5 rounded-[4px] text-[11px] font-medium tracking-tight whitespace-nowrap transition-all backdrop-blur-xl border ${
               selectedGalaxyId === "galaxy-triangulum"
                 ? "bg-[#8b5cf6] text-white border-[#8b5cf6] shadow-[0_2px_12px_rgba(139,92,246,0.35)] font-semibold"
                 : "bg-[#0c0d12]/85 text-[#9ca3af] border-white/10 hover:border-white/25 hover:text-white hover:bg-white/[0.04]"
@@ -2656,7 +2656,7 @@ export function AiMemoryGalaxySection({
               <button
                 key={cluster.id}
                 onClick={() => handleSelectCluster(cluster.id)}
-                className={`px-3 py-1.5 rounded-lg text-[11px] font-medium tracking-tight whitespace-nowrap transition-all backdrop-blur-xl border ${
+                className={`px-3 py-1.5 rounded-[4px] text-[11px] font-medium tracking-tight whitespace-nowrap transition-all backdrop-blur-xl border ${
                   isActive
                     ? "bg-[#f26522] text-white border-[#f26522] shadow-[0_2px_12px_rgba(242,101,34,0.35)] font-semibold"
                     : "bg-[#0c0d12]/85 text-[#9ca3af] border-white/10 hover:border-white/25 hover:text-white hover:bg-white/[0.04]"
@@ -2672,7 +2672,7 @@ export function AiMemoryGalaxySection({
         <div className="pointer-events-auto flex items-center gap-2 shrink-0 relative">
           <SpaceSoundToggle />
           <div className="relative">
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#0c0d12]/90 backdrop-blur-xl border border-white/12 focus-within:border-white/30 focus-within:ring-1 focus-within:ring-white/20 transition-all shadow-md">
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-[4px] bg-[#0c0d12]/90 backdrop-blur-xl border border-white/12 focus-within:border-white/30 focus-within:ring-1 focus-within:ring-white/20 transition-all shadow-md">
               <input
                 ref={searchInputRef}
                 type="text"
@@ -2700,7 +2700,7 @@ export function AiMemoryGalaxySection({
 
             {/* Search Dropdown Results */}
             {isSearchOpen && searchResults.length > 0 && (
-              <div className="absolute right-0 top-full mt-2 w-80 max-h-80 overflow-y-auto rounded-xl bg-[#0c0d12]/95 backdrop-blur-2xl border border-white/15 shadow-[0_24px_50px_rgba(0,0,0,0.85)] p-2 z-50">
+              <div className="absolute right-0 top-full mt-2 w-80 max-h-80 overflow-y-auto rounded-[5px] bg-[#0c0d12]/95 backdrop-blur-2xl border border-white/15 shadow-[0_24px_50px_rgba(0,0,0,0.85)] p-2 z-50">
                 <div className="text-[10px] font-mono uppercase text-[#71717a] px-2 py-1 flex items-center justify-between">
                   <span>Matching Memory Stars</span>
                   <span className="text-[#f26522] font-semibold">{searchResults.length}</span>
@@ -2709,7 +2709,7 @@ export function AiMemoryGalaxySection({
                   <button
                     key={result.id}
                     onClick={() => handleSelectMemory(result.id)}
-                    className="w-full text-left px-2.5 py-2 rounded-lg hover:bg-white/10 transition-colors flex flex-col gap-0.5 group"
+                    className="w-full text-left px-2.5 py-2 rounded-[3px] hover:bg-white/10 transition-colors flex flex-col gap-0.5 group"
                   >
                     <div className="flex items-center justify-between text-[11px]">
                       <span className="font-medium text-white group-hover:text-[#f26522] transition-colors flex items-center gap-1.5">
@@ -2732,7 +2732,7 @@ export function AiMemoryGalaxySection({
           {(selectedMemoryId || selectedClusterId || selectedGalaxyId || isTourActive) && (
             <button
               onClick={handleResetView}
-              className="px-3 py-1.5 rounded-lg bg-[#0c0d12]/90 backdrop-blur-xl border border-white/12 hover:border-white/30 text-xs font-medium text-[#9ca3af] hover:text-white flex items-center transition-all shadow-md"
+              className="px-3 py-1.5 rounded-[4px] bg-[#0c0d12]/90 backdrop-blur-xl border border-white/12 hover:border-white/30 text-xs font-medium text-[#9ca3af] hover:text-white flex items-center transition-all shadow-md"
               title="Reset View (Esc)"
             >
               <span>Reset</span>
@@ -2743,7 +2743,7 @@ export function AiMemoryGalaxySection({
 
       {/* ── GUIDED TOUR ACTIVE BANNER (TOP-CENTER) ── */}
       {isTourActive && (
-        <div className="absolute top-16 left-1/2 -translate-x-1/2 z-30 pointer-events-auto flex items-center gap-3 px-3.5 py-1.5 rounded-lg bg-[#0b0c10]/95 backdrop-blur-2xl border border-[#f26522]/40 shadow-[0_12px_32px_rgba(242,101,34,0.25)] animate-in fade-in slide-in-from-top-3 duration-200">
+        <div className="absolute top-16 left-1/2 -translate-x-1/2 z-30 pointer-events-auto flex items-center gap-3 px-3 py-1.5 rounded-[5px] bg-[#0b0c10]/95 backdrop-blur-2xl border border-[#f26522]/40 shadow-[0_12px_32px_rgba(242,101,34,0.25)] animate-in fade-in slide-in-from-top-3 duration-200">
           <div className="flex items-center gap-2">
             <Route className="size-3.5 text-[#f26522] animate-pulse" />
             <span className="text-[11px] font-mono uppercase tracking-wider text-[#f26522] font-semibold">
@@ -2756,14 +2756,14 @@ export function AiMemoryGalaxySection({
           <div className="flex items-center gap-1">
             <button
               onClick={handlePrevTourStop}
-              className="p-1 rounded-md hover:bg-white/10 text-white/80 hover:text-white transition-colors"
+              className="p-1 rounded-[3px] hover:bg-white/10 text-white/80 hover:text-white transition-colors"
               title="Previous Landmark (Left Arrow)"
             >
               <ArrowLeft className="size-3.5" />
             </button>
             <button
               onClick={handleNextTourStop}
-              className="p-1 rounded-md hover:bg-white/10 text-white/80 hover:text-white transition-colors"
+              className="p-1 rounded-[3px] hover:bg-white/10 text-white/80 hover:text-white transition-colors"
               title="Next Landmark (Right Arrow)"
             >
               <ArrowRight className="size-3.5" />
@@ -2784,7 +2784,7 @@ export function AiMemoryGalaxySection({
       {/* ── MINIMAL COMPACT PREVIEW TOOLTIP (ON HOVER) ── */}
       {hoveredNode && tooltipPos && !selectedMemoryId && (
         <div
-          className="fixed pointer-events-none z-50 px-4 py-3 rounded-xl bg-[#0a0b10]/95 backdrop-blur-2xl border border-white/[0.1] shadow-[0_16px_36px_rgba(0,0,0,0.85)] text-left max-w-[300px] -translate-x-1/2 -translate-y-full mb-3 animate-in fade-in zoom-in-95 duration-150 space-y-2"
+          className="fixed pointer-events-none z-50 px-4 py-3 rounded-[5px] bg-[#0a0b10]/95 backdrop-blur-2xl border border-white/[0.1] shadow-[0_16px_36px_rgba(0,0,0,0.85)] text-left max-w-[300px] -translate-x-1/2 -translate-y-full mb-3 animate-in fade-in zoom-in-95 duration-150 space-y-2"
           style={{
             left: `${tooltipPos.x}px`,
             top: `${tooltipPos.y - 14}px`,
@@ -2817,7 +2817,7 @@ export function AiMemoryGalaxySection({
 
       {/* ── COMPREHENSIVE MEMORY DETAIL PANEL (ON STAR SELECTION) ── */}
       {selectedMemory && (
-        <div className="absolute bottom-16 right-4 z-40 max-w-[400px] w-full p-5 rounded-xl bg-[#0a0b10]/95 backdrop-blur-2xl border border-white/[0.08] shadow-[0_24px_60px_rgba(0,0,0,0.85),inset_0_1px_0_0_rgba(255,255,255,0.06)] animate-in fade-in slide-in-from-bottom-3 duration-200 space-y-3.5">
+        <div className="absolute bottom-16 right-4 z-40 max-w-[400px] w-full p-5 rounded-[6px] bg-[#0a0b10]/95 backdrop-blur-2xl border border-white/[0.08] shadow-[0_24px_60px_rgba(0,0,0,0.85),inset_0_1px_0_0_rgba(255,255,255,0.06)] animate-in fade-in slide-in-from-bottom-3 duration-200 space-y-3.5">
           {/* Header */}
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2">
@@ -2832,7 +2832,7 @@ export function AiMemoryGalaxySection({
             </div>
             <button
               onClick={() => setSelectedMemoryId(null)}
-              className="text-zinc-400 hover:text-white size-6 flex items-center justify-center rounded-md hover:bg-white/10 transition-colors"
+              className="text-zinc-400 hover:text-white size-6 flex items-center justify-center rounded-[3px] hover:bg-white/10 transition-colors"
               title="Close Panel"
             >
               <X className="size-3.5" />
@@ -2894,7 +2894,7 @@ export function AiMemoryGalaxySection({
 
       {/* ── TOPIC CLUSTER DETAIL PANEL (ON CLUSTER SELECTION) ── */}
       {selectedCluster && !selectedMemoryId && (
-        <div className="absolute bottom-16 right-4 z-40 max-w-[400px] w-full p-5 rounded-xl bg-[#0a0b10]/95 backdrop-blur-2xl border border-white/[0.08] shadow-[0_24px_60px_rgba(0,0,0,0.85),inset_0_1px_0_0_rgba(255,255,255,0.06)] animate-in fade-in slide-in-from-bottom-3 duration-200 space-y-3.5">
+        <div className="absolute bottom-16 right-4 z-40 max-w-[400px] w-full p-5 rounded-[6px] bg-[#0a0b10]/95 backdrop-blur-2xl border border-white/[0.08] shadow-[0_24px_60px_rgba(0,0,0,0.85),inset_0_1px_0_0_rgba(255,255,255,0.06)] animate-in fade-in slide-in-from-bottom-3 duration-200 space-y-3.5">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Layers className="size-3.5 text-[#f26522]" />
@@ -2904,7 +2904,7 @@ export function AiMemoryGalaxySection({
             </div>
             <button
               onClick={() => setSelectedClusterId(null)}
-              className="text-zinc-400 hover:text-white size-6 flex items-center justify-center rounded-md hover:bg-white/10 transition-colors"
+              className="text-zinc-400 hover:text-white size-6 flex items-center justify-center rounded-[3px] hover:bg-white/10 transition-colors"
             >
               <X className="size-3.5" />
             </button>
@@ -2949,7 +2949,7 @@ export function AiMemoryGalaxySection({
 
       {/* ── COMPANION GALAXY DOSSIER PANEL (DISCOVERY COSMOS DEEP FIELD) ── */}
       {selectedGalaxy && !selectedMemoryId && (
-        <div className="absolute bottom-16 right-4 z-40 max-w-[420px] w-full p-5 rounded-xl bg-[#0a0b10]/95 backdrop-blur-2xl border border-white/[0.08] shadow-[0_24px_60px_rgba(0,0,0,0.85),inset_0_1px_0_0_rgba(255,255,255,0.06)] animate-in fade-in slide-in-from-bottom-3 duration-200 space-y-3.5">
+        <div className="absolute bottom-16 right-4 z-40 max-w-[420px] w-full p-5 rounded-[6px] bg-[#0a0b10]/95 backdrop-blur-2xl border border-white/[0.08] shadow-[0_24px_60px_rgba(0,0,0,0.85),inset_0_1px_0_0_rgba(255,255,255,0.06)] animate-in fade-in slide-in-from-bottom-3 duration-200 space-y-3.5">
           {/* Header */}
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2">
@@ -2960,7 +2960,7 @@ export function AiMemoryGalaxySection({
             </div>
             <button
               onClick={() => setSelectedGalaxyId(null)}
-              className="text-zinc-400 hover:text-white size-6 flex items-center justify-center rounded-md hover:bg-white/10 transition-colors"
+              className="text-zinc-400 hover:text-white size-6 flex items-center justify-center rounded-[3px] hover:bg-white/10 transition-colors"
               title="Close Dossier"
             >
               <X className="size-3.5" />
@@ -3003,7 +3003,7 @@ export function AiMemoryGalaxySection({
             <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-none">
               <button
                 onClick={handleResetView}
-                className="px-2.5 py-1.5 rounded-lg text-left text-[11px] whitespace-nowrap transition-all flex items-center gap-1.5 bg-white/[0.04] text-zinc-400 hover:text-white hover:bg-white/[0.08]"
+                className="px-2.5 py-1.5 rounded-[3px] text-left text-[11px] whitespace-nowrap transition-all flex items-center gap-1.5 bg-white/[0.04] text-zinc-400 hover:text-white hover:bg-white/[0.08]"
               >
                 <Orbit className="size-3 text-[#f26522]" />
                 <span>Milky Way</span>
@@ -3014,7 +3014,7 @@ export function AiMemoryGalaxySection({
                   <button
                     key={g.id}
                     onClick={() => handleSelectGalaxy(g.id)}
-                    className={`px-2.5 py-1.5 rounded-lg text-left text-[11px] whitespace-nowrap transition-all flex items-center gap-1.5 ${
+                    className={`px-2.5 py-1.5 rounded-[3px] text-left text-[11px] whitespace-nowrap transition-all flex items-center gap-1.5 ${
                       isCurrent
                         ? "bg-[#38bdf8] text-black font-semibold shadow-[0_2px_10px_rgba(56,189,248,0.35)]"
                         : "bg-white/[0.04] text-zinc-400 hover:text-white hover:bg-white/[0.08]"
@@ -3030,7 +3030,7 @@ export function AiMemoryGalaxySection({
       )}
 
       {/* ── BOTTOM TELEMETRY HUD (BOTTOM-LEFT) ── */}
-      <div className="absolute bottom-4 left-4 z-20 pointer-events-none hidden md:flex items-center gap-3 text-[10px] font-mono text-[#71717a] bg-[#0b0c10]/85 backdrop-blur-xl px-3.5 py-2 rounded-lg border border-white/10 shadow-lg">
+      <div className="absolute bottom-4 left-4 z-20 pointer-events-none hidden md:flex items-center gap-3 text-[10px] font-mono text-[#71717a] bg-[#0b0c10]/85 backdrop-blur-xl px-3.5 py-2 rounded-[4px] border border-white/10 shadow-lg">
         <div className="flex items-center gap-1.5 text-white/90">
           <Activity className="size-3 text-[#f26522]" />
           <span>FOCAL DISTANCE:</span>
@@ -3053,20 +3053,20 @@ export function AiMemoryGalaxySection({
         <span className="text-[#a1a1aa]">{DEMO_MEMORIES.length} STARS ACTIVE</span>
         <span>•</span>
         <span className="text-[#71717a]">
-          <kbd className="px-1 py-0.5 rounded bg-white/10 text-white font-mono">SPACE</kbd> DRIFT
+          <kbd className="px-1 py-0.5 rounded-[2px] bg-white/10 text-white font-mono">SPACE</kbd> DRIFT
         </span>
         <span>•</span>
         <span className="text-[#71717a]">
-          <kbd className="px-1 py-0.5 rounded bg-white/10 text-white font-mono">RIGHT-DRAG</kbd> PAN
+          <kbd className="px-1 py-0.5 rounded-[2px] bg-white/10 text-white font-mono">RIGHT-DRAG</kbd> PAN
         </span>
       </div>
 
       {/* ── FLOATING GRAPH & GALAXY CONTROLS DOCK (BOTTOM-RIGHT) ── */}
-      <div className="absolute bottom-4 right-4 z-30 pointer-events-auto flex items-center gap-1 p-1 rounded-lg bg-[#0b0c10]/90 backdrop-blur-2xl border border-white/15 shadow-[0_12px_32px_rgba(0,0,0,0.65)] text-white/80">
+      <div className="absolute bottom-4 right-4 z-30 pointer-events-auto flex items-center gap-1 p-1 rounded-[4px] bg-[#0b0c10]/90 backdrop-blur-2xl border border-white/15 shadow-[0_12px_32px_rgba(0,0,0,0.65)] text-white/80">
         {/* Zoom In */}
         <button
           onClick={handleZoomIn}
-          className="p-1.5 hover:bg-white/10 hover:text-white rounded-md transition-colors"
+          className="p-1.5 hover:bg-white/10 hover:text-white rounded-[3px] transition-colors"
           title="Zoom In (+)"
         >
           <ZoomIn className="size-3.5" />
@@ -3075,7 +3075,7 @@ export function AiMemoryGalaxySection({
         {/* Zoom Out */}
         <button
           onClick={handleZoomOut}
-          className="p-1.5 hover:bg-white/10 hover:text-white rounded-md transition-colors"
+          className="p-1.5 hover:bg-white/10 hover:text-white rounded-[3px] transition-colors"
           title="Zoom Out (-)"
         >
           <ZoomOut className="size-3.5" />
@@ -3084,7 +3084,7 @@ export function AiMemoryGalaxySection({
         {/* Fit to View / Full Overview */}
         <button
           onClick={handleResetView}
-          className="p-1.5 hover:bg-white/10 hover:text-white rounded-md transition-colors"
+          className="p-1.5 hover:bg-white/10 hover:text-white rounded-[3px] transition-colors"
           title="Fit Galaxy to View (0 / Esc)"
         >
           <Maximize2 className="size-3.5" />
@@ -3093,7 +3093,7 @@ export function AiMemoryGalaxySection({
         {/* Reset Camera Angle */}
         <button
           onClick={handleResetView}
-          className="p-1.5 hover:bg-white/10 hover:text-white rounded-md transition-colors"
+          className="p-1.5 hover:bg-white/10 hover:text-white rounded-[3px] transition-colors"
           title="Reset Camera Angle"
         >
           <RotateCcw className="size-3.5" />
@@ -3104,7 +3104,7 @@ export function AiMemoryGalaxySection({
         {/* Auto-Rotation Drift Toggle */}
         <button
           onClick={handleToggleAutoRotate}
-          className={`p-1.5 rounded-md transition-colors ${
+          className={`p-1.5 rounded-[3px] transition-colors ${
             isAutoRotating
               ? "text-[#f26522] bg-[#f26522]/15"
               : "opacity-40 hover:opacity-100 hover:bg-white/10"
@@ -3117,7 +3117,7 @@ export function AiMemoryGalaxySection({
         {/* Drift Speed Toggle (0.5x, 1x, 2x) */}
         <button
           onClick={handleCycleSpeed}
-          className="px-2 py-1 rounded-md hover:bg-white/10 text-[9px] font-mono text-[#a1a1aa] hover:text-white transition-colors"
+          className="px-2 py-1 rounded-[3px] hover:bg-white/10 text-[9px] font-mono text-[#a1a1aa] hover:text-white transition-colors"
           title="Cycle Drift Speed"
         >
           {driftSpeed}x
@@ -3126,7 +3126,7 @@ export function AiMemoryGalaxySection({
         {/* Filaments Toggle */}
         <button
           onClick={handleToggleFilaments}
-          className={`p-1.5 rounded-md transition-colors ${
+          className={`p-1.5 rounded-[3px] transition-colors ${
             showFilaments
               ? "text-[#f26522] bg-[#f26522]/15"
               : "opacity-40 hover:opacity-100 hover:bg-white/10"
@@ -3139,7 +3139,7 @@ export function AiMemoryGalaxySection({
         {/* Guided Tour Toggle */}
         <button
           onClick={isTourActive ? handleResetView : handleStartTour}
-          className={`px-2.5 py-1 rounded-md flex items-center gap-1 text-[10px] font-mono uppercase tracking-wider transition-all ${
+          className={`px-2.5 py-1 rounded-[3px] flex items-center gap-1 text-[10px] font-mono uppercase tracking-wider transition-all ${
             isTourActive
               ? "bg-[#f26522] text-white font-semibold shadow-[0_2px_10px_rgba(242,101,34,0.35)]"
               : "text-[#a1a1aa] hover:text-white hover:bg-white/10"

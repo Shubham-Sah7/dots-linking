@@ -43,11 +43,11 @@ export function DashboardModeSwitcher({
       {/* Mode Switcher Pill & Space Sound Controller */}
       <div className="flex items-center gap-2 sm:gap-3">
         <SpaceSoundToggle />
-        <div className="flex items-center bg-[#1a1a18] border border-white/[0.09] rounded-[10px] p-1 shadow-sm">
+        <div className="flex items-center bg-[#1a1a18] border border-white/[0.09] rounded-[5px] p-1 shadow-sm">
           {/* Option: AI Memory Living Galaxy */}
           <button
             onClick={() => onModeChange('galaxy')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[7px] text-xs font-sans transition-all duration-200 cursor-pointer ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[3px] text-xs font-sans transition-all duration-200 cursor-pointer ${
               currentMode === 'galaxy'
                 ? 'bg-[#f26522] text-white font-semibold shadow-[0px_2px_10px_rgba(242,101,34,0.3)]'
                 : 'text-[#a1a1aa] hover:text-white'
@@ -60,7 +60,7 @@ export function DashboardModeSwitcher({
           {/* Option: AI Memory Story (Original) */}
           <button
             onClick={() => onModeChange('visualization')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[7px] text-xs font-sans transition-all duration-200 cursor-pointer ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[3px] text-xs font-sans transition-all duration-200 cursor-pointer ${
               currentMode === 'visualization'
                 ? 'bg-[#f26522] text-white font-semibold shadow-[0px_2px_10px_rgba(242,101,34,0.3)]'
                 : 'text-[#a1a1aa] hover:text-white'
@@ -138,7 +138,7 @@ export function DashboardModeSwitcher({
           {/* Option 6: HXLFED Orbital AI Memory Graph */}
           <button
             onClick={() => onModeChange('hxlfed')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[7px] text-xs font-sans transition-all duration-200 cursor-pointer ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[3px] text-xs font-sans transition-all duration-200 cursor-pointer ${
               currentMode === 'hxlfed'
                 ? 'bg-[#e8c88a] text-black font-semibold shadow-[0px_2px_10px_rgba(232,200,138,0.35)]'
                 : 'text-[#a1a1aa] hover:text-white'

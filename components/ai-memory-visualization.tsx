@@ -1318,7 +1318,7 @@ export function AiMemoryVisualizationSection({
         <div className="pointer-events-auto flex items-center gap-1.5 overflow-x-auto max-w-full pb-1 scrollbar-none">
           <button
             onClick={handleResetView}
-            className={`px-3 py-1.5 rounded-full text-[11px] font-medium tracking-wide flex items-center gap-1.5 transition-all backdrop-blur-md border ${
+            className={`px-3 py-1.5 rounded-[4px] text-[11px] font-medium tracking-wide flex items-center gap-1.5 transition-all backdrop-blur-md border ${
               !selectedMemoryId && !selectedClusterId
                 ? "bg-white text-black border-white shadow-[0_4px_16px_rgba(255,255,255,0.15)]"
                 : "bg-[#141412]/80 text-[#a1a1aa] border-white/10 hover:border-white/20 hover:text-white"
@@ -1334,14 +1334,14 @@ export function AiMemoryVisualizationSection({
               <button
                 key={cluster.id}
                 onClick={() => handleSelectCluster(cluster.id)}
-                className={`px-3 py-1.5 rounded-full text-[11px] font-medium tracking-wide flex items-center gap-1.5 transition-all whitespace-nowrap backdrop-blur-md border ${
+                className={`px-3 py-1.5 rounded-[4px] text-[11px] font-medium tracking-wide flex items-center gap-1.5 transition-all whitespace-nowrap backdrop-blur-md border ${
                   isActive
                     ? "bg-[#f26522] text-white border-[#f26522] shadow-[0_4px_16px_rgba(242,101,34,0.35)]"
                     : "bg-[#141412]/80 text-[#a1a1aa] border-white/10 hover:border-white/20 hover:text-white"
                 }`}
               >
                 <span
-                  className={`size-1.5 rounded-full ${
+                  className={`size-1.5 rounded-[1px] ${
                     isActive ? "bg-white" : "bg-[#f26522]"
                   }`}
                 />
@@ -1354,7 +1354,7 @@ export function AiMemoryVisualizationSection({
         {/* Right: Search Box & Reset Action */}
         <div className="pointer-events-auto flex items-center gap-2 relative">
           <div className="relative">
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#141412]/90 backdrop-blur-md border border-white/15 focus-within:border-[#f26522] transition-colors shadow-lg">
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-[4px] bg-[#141412]/90 backdrop-blur-md border border-white/15 focus-within:border-[#f26522] transition-colors shadow-lg">
               <Search className="size-3.5 text-[#a1a1aa]" />
               <input
                 ref={searchInputRef}
@@ -1383,7 +1383,7 @@ export function AiMemoryVisualizationSection({
 
             {/* Search Dropdown Results */}
             {isSearchOpen && searchResults.length > 0 && (
-              <div className="absolute right-0 top-full mt-2 w-80 max-h-80 overflow-y-auto rounded-xl bg-[#141412]/95 backdrop-blur-xl border border-white/15 shadow-2xl p-1.5 z-50">
+              <div className="absolute right-0 top-full mt-2 w-80 max-h-80 overflow-y-auto rounded-[5px] bg-[#141412]/95 backdrop-blur-xl border border-white/15 shadow-2xl p-1.5 z-50">
                 <div className="text-[10px] font-mono uppercase text-[#71717a] px-2 py-1">
                   Matching Memories ({searchResults.length})
                 </div>
@@ -1391,7 +1391,7 @@ export function AiMemoryVisualizationSection({
                   <button
                     key={result.id}
                     onClick={() => handleSelectMemory(result.id)}
-                    className="w-full text-left px-2.5 py-2 rounded-lg hover:bg-white/10 transition-colors flex flex-col gap-0.5 group"
+                    className="w-full text-left px-2.5 py-2 rounded-[3px] hover:bg-white/10 transition-colors flex flex-col gap-0.5 group"
                   >
                     <div className="flex items-center justify-between text-[11px]">
                       <span className="font-medium text-white group-hover:text-[#f26522] transition-colors">
@@ -1413,7 +1413,7 @@ export function AiMemoryVisualizationSection({
           {(selectedMemoryId || selectedClusterId) && (
             <button
               onClick={handleResetView}
-              className="px-2.5 py-1.5 rounded-full bg-[#141412]/90 backdrop-blur-md border border-white/15 hover:border-white/30 text-xs text-[#a1a1aa] hover:text-white flex items-center gap-1.5 transition-colors shadow-lg"
+              className="px-2.5 py-1.5 rounded-[4px] bg-[#141412]/90 backdrop-blur-md border border-white/15 hover:border-white/30 text-xs text-[#a1a1aa] hover:text-white flex items-center gap-1.5 transition-colors shadow-lg"
               title="Reset View (Esc)"
             >
               <RotateCcw className="size-3.5" />
@@ -1426,14 +1426,14 @@ export function AiMemoryVisualizationSection({
       {/* ── MINIMAL HOVER TOOLTIP ── */}
       {hoveredNode && tooltipPos && !selectedMemoryId && (
         <div
-          className="fixed pointer-events-none z-50 px-3 py-2 rounded-[8px] bg-[#121210]/95 backdrop-blur-md border border-white/[0.14] shadow-[0_12px_28px_rgba(0,0,0,0.65)] text-left max-w-[280px] -translate-x-1/2 -translate-y-full mb-3 animate-in fade-in zoom-in-95 duration-150"
+          className="fixed pointer-events-none z-50 px-3 py-2 rounded-[4px] bg-[#121210]/95 backdrop-blur-md border border-white/[0.14] shadow-[0_12px_28px_rgba(0,0,0,0.65)] text-left max-w-[280px] -translate-x-1/2 -translate-y-full mb-3 animate-in fade-in zoom-in-95 duration-150"
           style={{
             left: `${tooltipPos.x}px`,
             top: `${tooltipPos.y - 12}px`,
           }}
         >
           <div className="flex items-center gap-1.5 mb-1">
-            <span className="size-1.5 rounded-full bg-[#f26522]" />
+            <span className="size-1.5 rounded-[1px] bg-[#f26522]" />
             <span className="font-mono text-[9px] uppercase tracking-wider text-[#f26522] font-semibold">
               {hoveredNode.topic}
             </span>
@@ -1450,18 +1450,18 @@ export function AiMemoryVisualizationSection({
 
       {/* ── COMPACT MEMORY DETAIL PANEL (SHOWN ON SELECTION) ── */}
       {selectedMemory && (
-        <div className="absolute bottom-4 right-4 z-40 max-w-[390px] w-full p-4 rounded-2xl bg-[#141412]/95 backdrop-blur-xl border border-white/15 shadow-[0_20px_48px_rgba(0,0,0,0.85)] animate-in fade-in slide-in-from-bottom-3 duration-200">
+        <div className="absolute bottom-4 right-4 z-40 max-w-[390px] w-full p-4 rounded-[6px] bg-[#141412]/95 backdrop-blur-xl border border-white/15 shadow-[0_20px_48px_rgba(0,0,0,0.85)] animate-in fade-in slide-in-from-bottom-3 duration-200">
           {/* Header with Topic Badge & Close */}
           <div className="flex items-center justify-between gap-2 pb-2 border-b border-white/10 mb-3">
             <div className="flex items-center gap-2">
-              <span className="size-2 rounded-full bg-[#f26522] ring-4 ring-[#f26522]/20" />
+              <span className="size-2 rounded-[1px] bg-[#f26522] ring-2 ring-[#f26522]/20" />
               <span className="text-[10px] font-mono uppercase tracking-wider text-[#f26522] font-semibold">
                 {selectedMemory.topic}
               </span>
             </div>
             <button
               onClick={() => setSelectedMemoryId(null)}
-              className="text-[#a1a1aa] hover:text-white p-1 rounded-md hover:bg-white/10 transition-colors"
+              className="text-[#a1a1aa] hover:text-white p-1 rounded-[3px] hover:bg-white/10 transition-colors"
               title="Close Panel"
             >
               <X className="size-4" />
@@ -1497,10 +1497,10 @@ export function AiMemoryVisualizationSection({
                 <button
                   key={edge.id}
                   onClick={() => handleSelectMemory(otherNode.id)}
-                  className="w-full text-left p-2.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/5 hover:border-[#f26522]/40 transition-all group flex flex-col gap-1"
+                  className="w-full text-left p-2.5 rounded-[4px] bg-white/[0.04] hover:bg-white/[0.08] border border-white/5 hover:border-[#f26522]/40 transition-all group flex flex-col gap-1"
                 >
                   <div className="flex items-center justify-between">
-                    <span className="text-[10px] px-2 py-0.5 rounded-full font-mono font-medium capitalize bg-[#f26522]/15 text-[#f26522] border border-[#f26522]/30">
+                    <span className="text-[10px] px-2 py-0.5 rounded-[2px] font-mono font-medium capitalize bg-[#f26522]/15 text-[#f26522] border border-[#f26522]/30">
                       {edge.type}
                     </span>
                     <ArrowRight className="size-3 text-[#71717a] group-hover:text-white group-hover:translate-x-0.5 transition-all" />
@@ -1520,7 +1520,7 @@ export function AiMemoryVisualizationSection({
 
       {/* ── TOPIC CLUSTER DETAIL PANEL (SHOWN ON CLUSTER SELECTION) ── */}
       {selectedCluster && !selectedMemoryId && (
-        <div className="absolute bottom-4 right-4 z-40 max-w-[380px] w-full p-4 rounded-2xl bg-[#141412]/95 backdrop-blur-xl border border-white/15 shadow-[0_20px_48px_rgba(0,0,0,0.85)] animate-in fade-in slide-in-from-bottom-3 duration-200">
+        <div className="absolute bottom-4 right-4 z-40 max-w-[380px] w-full p-4 rounded-[6px] bg-[#141412]/95 backdrop-blur-xl border border-white/15 shadow-[0_20px_48px_rgba(0,0,0,0.85)] animate-in fade-in slide-in-from-bottom-3 duration-200">
           <div className="flex items-center justify-between pb-2 border-b border-white/10 mb-3">
             <div className="flex items-center gap-2">
               <Layers className="size-3.5 text-[#f26522]" />
@@ -1530,7 +1530,7 @@ export function AiMemoryVisualizationSection({
             </div>
             <button
               onClick={() => setSelectedClusterId(null)}
-              className="text-[#a1a1aa] hover:text-white p-1 rounded-md hover:bg-white/10 transition-colors"
+              className="text-[#a1a1aa] hover:text-white p-1 rounded-[3px] hover:bg-white/10 transition-colors"
             >
               <X className="size-4" />
             </button>
@@ -1553,7 +1553,7 @@ export function AiMemoryVisualizationSection({
               <button
                 key={mem.id}
                 onClick={() => handleSelectMemory(mem.id)}
-                className="w-full text-left p-2 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] border border-white/5 hover:border-white/20 transition-all flex items-center justify-between group"
+                className="w-full text-left p-2 rounded-[3px] bg-white/[0.04] hover:bg-white/[0.08] border border-white/5 hover:border-white/20 transition-all flex items-center justify-between group"
               >
                 <div>
                   <div className="text-xs font-medium text-white group-hover:text-[#f26522] transition-colors">
@@ -1569,14 +1569,14 @@ export function AiMemoryVisualizationSection({
       )}
 
       {/* ── BOTTOM CANVAS INSTRUCTIONS & HINTS ── */}
-      <div className="absolute bottom-4 left-4 z-20 pointer-events-none hidden sm:flex items-center gap-3 text-[10px] font-mono text-[#71717a] bg-[#141412]/70 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10">
+      <div className="absolute bottom-4 left-4 z-20 pointer-events-none hidden sm:flex items-center gap-3 text-[10px] font-mono text-[#71717a] bg-[#141412]/70 backdrop-blur-md px-3 py-1.5 rounded-[4px] border border-white/10">
         <span>Drag to rotate</span>
         <span>•</span>
         <span>Scroll to zoom</span>
         <span>•</span>
         <span>Click memory to inspect relationships</span>
         <span>•</span>
-        <span>Press <kbd className="px-1 py-0.5 rounded bg-white/10 text-white font-mono">/</kbd> to search</span>
+        <span>Press <kbd className="px-1 py-0.5 rounded-[2px] bg-white/10 text-white font-mono">/</kbd> to search</span>
       </div>
     </div>
   );
