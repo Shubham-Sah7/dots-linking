@@ -3,7 +3,6 @@
 import React, { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import * as THREE from "three";
 import {
-  Search,
   X,
   RotateCcw,
   ArrowRight,
@@ -22,6 +21,7 @@ import {
   Route,
 } from "lucide-react";
 import { spaceSoundscape } from "@/lib/audio/space-soundscape";
+import { SpaceSoundToggle } from "@/components/space-sound-toggle";
 
 // ════════════════════════════════════════════════════════════════════════════
 // 1. DATA MODELS & TYPINGS
@@ -634,9 +634,9 @@ function createGalacticBulgeTexture(): THREE.CanvasTexture {
   const grad = ctx.createRadialGradient(c, c, 0, c, c, size / 2);
   grad.addColorStop(0.0, "rgba(255, 255, 255, 1.0)");
   grad.addColorStop(0.08, "rgba(255, 248, 230, 0.95)");
-  grad.addColorStop(0.24, "rgba(255, 225, 170, 0.62)");
-  grad.addColorStop(0.48, "rgba(242, 120, 40, 0.22)");
-  grad.addColorStop(0.74, "rgba(180, 80, 25, 0.05)");
+  grad.addColorStop(0.24, "rgba(255, 230, 180, 0.58)");
+  grad.addColorStop(0.48, "rgba(246, 190, 115, 0.18)");
+  grad.addColorStop(0.74, "rgba(225, 150, 75, 0.04)");
   grad.addColorStop(1.0, "rgba(0, 0, 0, 0.0)");
 
   ctx.fillStyle = grad;
@@ -692,11 +692,14 @@ export function AiMemoryGalaxySection({
     targetYaw: 0.65,
     targetPitch: 0.52,
     targetRadius: 145,
-    minRadius: 0.05,     // Infinite micro zoom into star surfaces
+    minRadius: 0.04,     // Infinite micro zoom into star surfaces
     maxRadius: Infinity, // Completely unbounded infinite macro zoom out
 
     lookAt: new THREE.Vector3(0, 0, 0),
     targetLookAt: new THREE.Vector3(0, 0, 0),
+
+    parallaxYaw: 0,
+    parallaxPitch: 0,
 
     yawVelocity: 0,
     pitchVelocity: 0,
@@ -708,6 +711,9 @@ export function AiMemoryGalaxySection({
 
     autoRotate: true,
   });
+
+  const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
+  const lastAltitudeUpdateMs = useRef<number>(0);
 
   // Stable references for 60-120fps render loop
   const isAutoRotatingRef = useRef(true);
@@ -802,7 +808,7 @@ export function AiMemoryGalaxySection({
 
   // Reset to full galaxy view
   const handleResetView = useCallback(() => {
-    spaceSoundscape.playGlideTransition();
+    spaceSoundscape.playGlideTransition("out");
     setSelectedMemoryId(null);
     setSelectedClusterId(null);
     setSelectedGalaxyId(null);
@@ -822,7 +828,13 @@ export function AiMemoryGalaxySection({
   const handleSelectGalaxy = useCallback((galaxyId: string) => {
     const gal = COMPANION_GALAXIES.find((g) => g.id === galaxyId);
     if (!gal) return;
-    spaceSoundscape.playGlideTransition();
+
+    let screenX = 0;
+    if (cameraRef.current) {
+      const proj = gal.center.clone().project(cameraRef.current);
+      screenX = THREE.MathUtils.clamp(proj.x, -1.0, 1.0);
+    }
+    spaceSoundscape.playClusterBloom(2, screenX);
 
     setSelectedGalaxyId(galaxyId);
     setSelectedMemoryId(null);
@@ -841,8 +853,14 @@ export function AiMemoryGalaxySection({
     const target = DEMO_MEMORIES.find((m) => m.id === memoryId);
     if (!target) return;
 
+    let screenX = 0;
+    if (cameraRef.current) {
+      const proj = target.anchor.clone().project(cameraRef.current);
+      screenX = THREE.MathUtils.clamp(proj.x, -1.0, 1.0);
+    }
+
     const clusterIdx = TOPIC_CLUSTERS.findIndex((c) => c.id === target.clusterId);
-    spaceSoundscape.playNodePulse(clusterIdx !== -1 ? clusterIdx : 0, 1);
+    spaceSoundscape.playNodePulse(clusterIdx !== -1 ? clusterIdx : 0, screenX, target.isAnchor);
 
     setSelectedMemoryId(memoryId);
     setSelectedClusterId(null);
@@ -859,7 +877,14 @@ export function AiMemoryGalaxySection({
     const cluster = TOPIC_CLUSTERS.find((c) => c.id === clusterId);
     if (!cluster) return;
 
-    spaceSoundscape.playGlideTransition();
+    let screenX = 0;
+    if (cameraRef.current) {
+      const proj = cluster.centroid.clone().project(cameraRef.current);
+      screenX = THREE.MathUtils.clamp(proj.x, -1.0, 1.0);
+    }
+
+    const clusterIdx = TOPIC_CLUSTERS.findIndex((c) => c.id === clusterId);
+    spaceSoundscape.playClusterBloom(clusterIdx !== -1 ? clusterIdx : 0, screenX);
 
     setSelectedClusterId(clusterId);
     setSelectedMemoryId(null);
@@ -875,15 +900,15 @@ export function AiMemoryGalaxySection({
   // Smooth Infinite Zoom In
   const handleZoomIn = useCallback(() => {
     const s = cameraStateRef.current;
-    s.targetRadius = Math.max(0.05, s.targetRadius * 0.65);
-    spaceSoundscape.playGlideTransition();
+    s.targetRadius = Math.max(0.04, s.targetRadius * 0.65);
+    spaceSoundscape.playZoomSweep("in");
   }, []);
 
   // Smooth Infinite Zoom Out (Unbounded)
   const handleZoomOut = useCallback(() => {
     const s = cameraStateRef.current;
     s.targetRadius = s.targetRadius * 1.55;
-    spaceSoundscape.playGlideTransition();
+    spaceSoundscape.playZoomSweep("out");
   }, []);
 
   // Toggle Auto-Rotation
@@ -965,6 +990,7 @@ export function AiMemoryGalaxySection({
       0.05,
       2000000
     );
+    cameraRef.current = camera;
 
     const renderer = new THREE.WebGLRenderer({
       canvas,
@@ -1017,7 +1043,7 @@ export function AiMemoryGalaxySection({
       map: coreBulgeTexture,
       color: 0xf8cc84,
       transparent: true,
-      opacity: 0.65,
+      opacity: 0.60,
       blending: THREE.AdditiveBlending,
       depthWrite: false,
     });
@@ -1025,12 +1051,12 @@ export function AiMemoryGalaxySection({
     barSprite.scale.set(88, 52, 1);
     coreGroup.add(barSprite);
 
-    // 4. Wide atmospheric galactic halo (Maximem orange starlight warmth)
+    // 4. Wide atmospheric galactic halo (soft warm amber starlight)
     const haloMat = new THREE.SpriteMaterial({
       map: coreBulgeTexture,
-      color: 0xf26522,
+      color: 0xf6be74,
       transparent: true,
-      opacity: 0.38,
+      opacity: 0.28,
       blending: THREE.AdditiveBlending,
       depthWrite: false,
     });
@@ -1041,9 +1067,9 @@ export function AiMemoryGalaxySection({
     // 5. Vast outer diffuse milky haze
     const outerHazeMat = new THREE.SpriteMaterial({
       map: coreBulgeTexture,
-      color: 0xd67232,
+      color: 0xedb879,
       transparent: true,
-      opacity: 0.18,
+      opacity: 0.14,
       blending: THREE.AdditiveBlending,
       depthWrite: false,
     });
@@ -1060,6 +1086,8 @@ export function AiMemoryGalaxySection({
     const baseColors = new Float32Array(totalParticles * 3);
     const particleSizes = new Float32Array(totalParticles);
     const particleSpeeds = new Float32Array(totalParticles);
+    const particlePhases = new Float32Array(totalParticles);
+    const particleLayers = new Float32Array(totalParticles);
 
     // Astronomical stellar population color palette
     const colNuclearWhite = new THREE.Color(0xffffff);
@@ -1098,6 +1126,17 @@ export function AiMemoryGalaxySection({
       let col = colSilverWhite;
       let size = 1.2;
       let speedFactor = 1.0;
+
+      let layerId = 0.0;
+      if (i < 20000) layerId = 0.0;
+      else if (i < 58000) layerId = 1.0;
+      else if (i < 68000) layerId = 2.0;
+      else if (i < 73500) layerId = 3.0;
+      else if (i < 75000) layerId = 4.0;
+      else if (i < 91000) layerId = 5.0;
+      else if (i < 99000) layerId = 6.0;
+      else if (i < 103500) layerId = 7.0;
+      else layerId = 8.0;
 
       if (i < 20000) {
         // 1. DENSE BARRED BULGE & NUCLEAR CORE (20,000 stars)
@@ -1432,6 +1471,8 @@ export function AiMemoryGalaxySection({
 
       particleSizes[i] = size;
       particleSpeeds[i] = speedFactor;
+      particlePhases[i] = Math.random() * Math.PI * 2.0;
+      particleLayers[i] = layerId;
     }
 
     const particlesGeometry = new THREE.BufferGeometry();
@@ -1439,6 +1480,8 @@ export function AiMemoryGalaxySection({
     particlesGeometry.setAttribute("baseColor", new THREE.BufferAttribute(baseColors, 3));
     particlesGeometry.setAttribute("particleSize", new THREE.BufferAttribute(particleSizes, 1));
     particlesGeometry.setAttribute("speedFactor", new THREE.BufferAttribute(particleSpeeds, 1));
+    particlesGeometry.setAttribute("aPhase", new THREE.BufferAttribute(particlePhases, 1));
+    particlesGeometry.setAttribute("aLayer", new THREE.BufferAttribute(particleLayers, 1));
 
     const particlesMaterial = new THREE.ShaderMaterial({
       uniforms: {
@@ -1452,10 +1495,13 @@ export function AiMemoryGalaxySection({
         attribute vec3 baseColor;
         attribute float particleSize;
         attribute float speedFactor;
+        attribute float aPhase;
+        attribute float aLayer;
 
         varying vec3 vColor;
         varying float vAlpha;
         varying float vOrange;
+        varying float vShimmer;
 
         uniform float uTime;
         uniform vec3 uHoveredPos;
@@ -1464,47 +1510,106 @@ export function AiMemoryGalaxySection({
 
         void main() {
           vColor = baseColor;
+          vec3 pos = position;
 
-          float driftSpeed = 0.016 * speedFactor;
-          float angle = uTime * driftSpeed;
-          float cosA = cos(angle);
-          float sinA = sin(angle);
+          // ── 1. LAYER-SPECIFIC CONTINUOUS NATURAL COSMIC MOVEMENT ──
+          if (aLayer < 3.5) {
+            // Milky Way Galaxy (Core, Arms, Dust, Disk)
+            float radius = length(pos.xz);
 
-          vec3 transformed = position;
-          if (speedFactor > 0.05) {
-            float rx = transformed.x * cosA - transformed.z * sinA;
-            float rz = transformed.x * sinA + transformed.z * cosA;
-            transformed.x = rx;
-            transformed.z = rz;
+            // Lin-Shu density wave pattern speed + gentle differential Keplerian shear
+            // Smooth coherent rotation: 0.0035 rad/sec keeps arms permanently intact
+            float patternSpeed = 0.0035;
+            float differential = 0.0022 * (10.0 / max(radius, 5.0));
+            float angle = uTime * (patternSpeed + differential * speedFactor);
+            float cosA = cos(angle);
+            float sinA = sin(angle);
+
+            float rx = pos.x * cosA - pos.z * sinA;
+            float rz = pos.x * sinA + pos.z * cosA;
+            pos.x = rx;
+            pos.z = rz;
+
+            // Organic vertical wave breathing across the galactic plane
+            float wavePhase = radius * 0.055 - uTime * 0.28 + aPhase;
+            pos.y += sin(wavePhase) * (0.12 + 0.006 * radius);
+
+            // Dust lane billow & volumetric misty depth (Layer 2)
+            if (aLayer > 1.5 && aLayer < 2.5) {
+              pos.x += sin(uTime * 0.4 + aPhase * 2.0) * 0.16;
+              pos.y += sin(uTime * 0.22 + aPhase * 3.0) * 0.08;
+              pos.z += cos(uTime * 0.35 + aPhase * 2.0) * 0.16;
+            }
+
+            // Core Accretion Inward Stream (radii < 8.5 AU gently orbiting & flowing toward singularity)
+            if (radius < 8.5 && radius > 0.35) {
+              float coreFlow = sin(uTime * 0.55 + aPhase * 3.0) * 0.05;
+              pos.xz += normalize(pos.xz) * coreFlow;
+
+              // Keplerian orbital acceleration near central nucleus
+              float tangentialBoost = (8.5 - radius) * 0.0022;
+              float tAngle = uTime * tangentialBoost;
+              float cT = cos(tAngle);
+              float sT = sin(tAngle);
+              float cx = pos.x * cT - pos.z * sT;
+              float cz = pos.x * sT + pos.z * cT;
+              pos.x = cx;
+              pos.z = cz;
+            }
+          } else if (aLayer > 4.5 && aLayer < 5.5) {
+            // Andromeda (M31) Internal Galactic Spiral Rotation around (-360, 130, -410)
+            vec3 m31Center = vec3(-360.0, 130.0, -410.0);
+            vec3 localP = pos - m31Center;
+            float m31Angle = uTime * 0.0038;
+            float cosM = cos(m31Angle);
+            float sinM = sin(m31Angle);
+            float lx = localP.x * cosM - localP.z * sinM;
+            float lz = localP.x * sinM + localP.z * cosM;
+            pos = m31Center + vec3(lx, localP.y + sin(uTime * 0.25 + aPhase) * 0.12, lz);
+          } else if (aLayer > 5.5 && aLayer < 6.5) {
+            // Triangulum (M33) Internal Galactic Spiral Rotation around (290, -110, -380)
+            vec3 m33Center = vec3(290.0, -110.0, -380.0);
+            vec3 localP = pos - m33Center;
+            float m33Angle = -uTime * 0.0045;
+            float cosT = cos(m33Angle);
+            float sinT = sin(m33Angle);
+            float lx = localP.x * cosT - localP.z * sinT;
+            float lz = localP.x * sinT + localP.z * cosT;
+            pos = m33Center + vec3(lx, localP.y + cos(uTime * 0.3 + aPhase) * 0.1, lz);
+          } else if (aLayer < 4.5) {
+            // Distant background cosmic field stars: gentle floating micro-drift
+            pos.y += sin(uTime * 0.15 + aPhase) * 0.22;
           }
 
-          float pulse = sin(uTime * 0.8 + length(position) * 0.08) * 0.12;
-          transformed += normalize(transformed + vec3(0.001)) * pulse;
-
-          float distToHover = length(transformed - uHoveredPos);
+          // ── 2. PROXIMITY ILLUMINATION ──
+          float distToHover = length(pos - uHoveredPos);
           float orangeVal = 0.0;
           if (distToHover < 14.0) {
             orangeVal = (1.0 - distToHover / 14.0) * 0.75;
           }
           vOrange = clamp(orangeVal, 0.0, 1.0);
 
-          vec4 mvPosition = modelViewMatrix * vec4(transformed, 1.0);
+          // ── 3. CAMERA PROJECTION & CRISP STELLAR POINT SCALING ──
+          vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
           gl_Position = projectionMatrix * mvPosition;
 
           float dist = max(-mvPosition.z, 0.05);
           float pSize = particleSize;
           if (vOrange > 0.1) pSize *= 1.4;
 
-          // Crisp astronomical stellar disc scaling:
-          // Clamped tightly so close stars NEVER turn into 120px blurred fuzzy blobs
-          // Instead, every single particle remains a crisp, distinct, jewel-like diamond star!
+          // Randomized Astronomical Stellar Twinkling
+          float twinkleFreq = 0.85 + fract(aPhase * 19.37) * 1.6;
+          float twinkle = 0.88 + 0.12 * sin(uTime * twinkleFreq + aPhase * 6.28);
+          vShimmer = 0.92 + 0.08 * sin(uTime * (twinkleFreq * 0.9) + aPhase * 3.14);
+
+          // Crisp diamond star scaling curve — eliminates blurred blobs on close approach
           float pScale = 280.0 / max(dist, 1.8);
           if (dist < 25.0) {
             pScale = (280.0 / 25.0) * pow(25.0 / max(dist, 0.4), 0.38);
           }
-          gl_PointSize = clamp(pSize * pScale, 0.75, 18.0);
+          gl_PointSize = clamp(pSize * pScale * twinkle, 0.65, 17.5);
 
-          // Soft near-plane clip fade so particles don't pop when camera passes right through them
+          // Near-plane soft clip fade
           float nearClipFade = smoothstep(0.04, 0.28, dist);
           vAlpha = nearClipFade;
         }
@@ -1517,6 +1622,7 @@ export function AiMemoryGalaxySection({
         varying vec3 vColor;
         varying float vAlpha;
         varying float vOrange;
+        varying float vShimmer;
 
         void main() {
           vec4 texColor = texture2D(uStarTexture, gl_PointCoord);
@@ -1525,7 +1631,7 @@ export function AiMemoryGalaxySection({
           vec3 finalColor = mix(vColor, uOrangeColor, vOrange);
           finalColor += vec3(pow(texColor.r, 2.2) * 0.38);
 
-          float finalAlpha = texColor.a * vAlpha;
+          float finalAlpha = texColor.a * vAlpha * vShimmer;
           finalAlpha = mix(finalAlpha, finalAlpha * 0.28, uDimming);
 
           gl_FragColor = vec4(finalColor, finalAlpha);
@@ -1545,9 +1651,10 @@ export function AiMemoryGalaxySection({
       spikeSprite?: THREE.Sprite;
       proxyMesh: THREE.Mesh;
       item: MemoryNode;
+      radius0: number;
+      theta0: number;
+      y0: number;
     }[] = [];
-
-
 
     const starsGroup = new THREE.Group();
     const proxyGroup = new THREE.Group();
@@ -1594,8 +1701,21 @@ export function AiMemoryGalaxySection({
       proxyMesh.userData = { memory: item, starSprite, spikeSprite };
       proxyGroup.add(proxyMesh);
 
-      nodeMeshes.push({ starSprite, spikeSprite, proxyMesh, item });
+      const r0 = Math.hypot(item.anchor.x, item.anchor.z);
+      const th0 = Math.atan2(item.anchor.z, item.anchor.x);
+
+      nodeMeshes.push({
+        starSprite,
+        spikeSprite,
+        proxyMesh,
+        item,
+        radius0: r0,
+        theta0: th0,
+        y0: item.anchor.y,
+      });
     });
+
+    const proxyMeshes = nodeMeshes.map((m) => m.proxyMesh);
 
     scene.add(starsGroup);
     scene.add(proxyGroup);
@@ -1604,19 +1724,20 @@ export function AiMemoryGalaxySection({
     const edgeMeshes: {
       line: THREE.Line;
       edge: GraphEdge;
+      m1Idx: number;
+      m2Idx: number;
       curvePoints: THREE.Vector3[];
-
-
     }[] = [];
-
-
 
     const curveResolution = 20;
 
     GRAPH_EDGES.forEach((edge) => {
-      const m1 = DEMO_MEMORIES.find((m) => m.id === edge.sourceId);
-      const m2 = DEMO_MEMORIES.find((m) => m.id === edge.targetId);
-      if (!m1 || !m2) return;
+      const m1Idx = DEMO_MEMORIES.findIndex((m) => m.id === edge.sourceId);
+      const m2Idx = DEMO_MEMORIES.findIndex((m) => m.id === edge.targetId);
+      if (m1Idx === -1 || m2Idx === -1) return;
+
+      const m1 = DEMO_MEMORIES[m1Idx];
+      const m2 = DEMO_MEMORIES[m2Idx];
 
       const p1 = m1.anchor;
       const p2 = m2.anchor;
@@ -1637,7 +1758,6 @@ export function AiMemoryGalaxySection({
         .addScaledVector(perp, archHeight);
 
       const points: THREE.Vector3[] = [];
-
 
       for (let step = 0; step <= curveResolution; step++) {
         const t = step / curveResolution;
@@ -1664,23 +1784,61 @@ export function AiMemoryGalaxySection({
       edgeMeshes.push({
         line,
         edge,
+        m1Idx,
+        m2Idx,
         curvePoints: points,
       });
     });
 
-    // ── E. TRAVELING RECALL PHOTONS ──
-    const photonCount = 14;
+    // ── E. TRAVELING RECALL PHOTONS (SYNAPTIC COSMIC DATA PULSES) ──
+    const photonCount = 28;
     const photonGeo = new THREE.BufferGeometry();
     const photonPos = new Float32Array(photonCount * 3);
+    const photonProgress = new Float32Array(photonCount);
+    for (let i = 0; i < photonCount * 3; i++) photonPos[i] = -1000;
     photonGeo.setAttribute("position", new THREE.BufferAttribute(photonPos, 3));
+    photonGeo.setAttribute("aProgress", new THREE.BufferAttribute(photonProgress, 1));
 
-    const photonMat = new THREE.PointsMaterial({
-      size: 2.8,
-      color: 0xf26522,
-      map: starTexture,
+    const photonMat = new THREE.ShaderMaterial({
+      uniforms: {
+        uTexture: { value: starTexture },
+        uColor: { value: new THREE.Color(0xffe2b8) },
+        uBaseSize: { value: 2.2 },
+        uOpacity: { value: 0.45 },
+      },
+      vertexShader: `
+        attribute float aProgress;
+        varying float vAlpha;
+        uniform float uBaseSize;
+
+        void main() {
+          // Eased arc fade: softly blooms from origin, peaks at apex, and dissolves into target star
+          float fade = sin(clamp(aProgress, 0.0, 1.0) * 3.14159);
+          vAlpha = fade;
+
+          vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+          gl_Position = projectionMatrix * mvPosition;
+
+          float dist = max(-mvPosition.z, 0.5);
+          gl_PointSize = clamp((uBaseSize * 160.0 / dist) * (0.6 + 0.4 * fade), 1.5, 22.0);
+        }
+      `,
+      fragmentShader: `
+        uniform sampler2D uTexture;
+        uniform vec3 uColor;
+        uniform float uOpacity;
+        varying float vAlpha;
+
+        void main() {
+          vec4 tex = texture2D(uTexture, gl_PointCoord);
+          if (tex.a < 0.02) discard;
+          float alpha = tex.a * vAlpha * uOpacity;
+          gl_FragColor = vec4(uColor, alpha);
+        }
+      `,
       transparent: true,
-      blending: THREE.AdditiveBlending,
       depthWrite: false,
+      blending: THREE.AdditiveBlending,
     });
     const photonsMesh = new THREE.Points(photonGeo, photonMat);
     scene.add(photonsMesh);
@@ -1700,6 +1858,23 @@ export function AiMemoryGalaxySection({
     const raycaster = new THREE.Raycaster();
     const mouse = new THREE.Vector2(-1000, -1000);
     const tempVec = new THREE.Vector3();
+    const tempChord = new THREE.Vector3();
+    const tempTangent = new THREE.Vector3();
+    const tempUp = new THREE.Vector3(0, 1, 0);
+    const tempPerp = new THREE.Vector3();
+    const tempForward = new THREE.Vector3(0, 0, 1);
+    const tempControlPoint = new THREE.Vector3();
+    const whiteColor = new THREE.Color(0xffffff);
+
+    const panForward = new THREE.Vector3();
+    const panRight = new THREE.Vector3();
+    const panUp = new THREE.Vector3();
+
+    const prefersReducedMotion =
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const motionScale = prefersReducedMotion ? 0.2 : 1.0;
+
     let pendingHoverNodeId: string | null = null;
 
     // ════════════════════════════════════════════════════════════════════════
@@ -1711,8 +1886,8 @@ export function AiMemoryGalaxySection({
 
     const animate = () => {
       animationFrameId = requestAnimationFrame(animate);
-      const delta = Math.min(clock.getDelta(), 0.1);
-      const time = clock.getElapsedTime();
+      const delta = Math.min(clock.getDelta(), 0.08);
+      const time = clock.getElapsedTime() * motionScale;
 
       particlesMaterial.uniforms.uTime.value = time;
 
@@ -1720,7 +1895,7 @@ export function AiMemoryGalaxySection({
       const sel = selectionRef.current;
 
       // Smooth dimming
-      const targetDimming = sel.selectedId ? 0.72 : 0.0;
+      const targetDimming = sel.selectedId ? 0.68 : 0.0;
       particlesMaterial.uniforms.uDimming.value = THREE.MathUtils.lerp(
         particlesMaterial.uniforms.uDimming.value,
         targetDimming,
@@ -1730,40 +1905,70 @@ export function AiMemoryGalaxySection({
       // Distance from camera to the galactic center (0, 0, 0)
       const distToCore = Math.hypot(camera.position.x, camera.position.y, camera.position.z);
 
-      // Atmospheric bulge fade curve based on camera distance
-      // When zooming deep inside (distToCore < 45), diffuse haze sprites completely dissolve!
-      // This eliminates the "blurred orange blob" when inspecting close stars and core particles!
-      const hazeAlpha = THREE.MathUtils.smoothstep(distToCore, 35.0, 110.0);
-      const haloAlpha = THREE.MathUtils.smoothstep(distToCore, 24.0, 85.0);
-      const barAlpha = THREE.MathUtils.smoothstep(distToCore, 15.0, 60.0);
-      const coreAlpha = THREE.MathUtils.smoothstep(distToCore, 8.0, 38.0);
+      const galaxyPatternSpeed = 0.0035 * motionScale;
+      const galaxyAngle = time * galaxyPatternSpeed;
 
-      const coreBreath = 1.0 + Math.sin(time * 0.9) * 0.055;
+      // Dissolve the massive central billboard sprites as the user zooms in to inspect stars and fine particles
+      // Prevents any flat beige/orange disc or blob from occluding the view during deep zoom
+      const zoomCoreFade = THREE.MathUtils.smoothstep(s.radius, 12.0, 60.0);
+      const zoomCoreScale = THREE.MathUtils.clamp((s.radius - 8.0) / 45.0, 0.0, 1.0);
 
-      // Inner core resolves into a tight, crisp stellar singularity when flying inside
-      const innerCoreScale = Math.min(22.0, Math.max(0.6, distToCore * 0.22));
-      innerCoreSprite.scale.set(
-        innerCoreScale * (1.0 + Math.sin(time * 1.3) * 0.04),
-        innerCoreScale * (1.0 + Math.sin(time * 1.3) * 0.04),
-        1
-      );
-      innerCoreMat.opacity = Math.min(1.0, THREE.MathUtils.smoothstep(distToCore, 0.4, 18.0) * 0.95 + 0.05);
+      if (zoomCoreFade < 0.005) {
+        coreGroup.visible = false;
+      } else {
+        coreGroup.visible = true;
 
-      coreSprite.scale.set(48 * coreBreath, 48 * coreBreath, 1);
-      coreMat.opacity = 0.95 * coreAlpha;
+        // Atmospheric bulge fade curve based on camera distance
+        const hazeAlpha = THREE.MathUtils.smoothstep(distToCore, 35.0, 110.0);
+        const haloAlpha = THREE.MathUtils.smoothstep(distToCore, 24.0, 85.0);
+        const barAlpha = THREE.MathUtils.smoothstep(distToCore, 15.0, 60.0);
+        const coreAlpha = THREE.MathUtils.smoothstep(distToCore, 8.0, 38.0);
 
-      barSprite.scale.set(88 * coreBreath, 52 * (1.0 + Math.cos(time * 0.75) * 0.04), 1);
-      barMat.opacity = 0.65 * barAlpha;
+        // Organic multi-harmonic breathing
+        const breathA = Math.sin(time * 0.52) * 0.035;
+        const breathB = Math.cos(time * 0.88) * 0.02;
+        const compositeBreath = (1.0 + breathA + breathB) * Math.max(0.08, zoomCoreScale);
+        const corePulseLuminosity = 0.94 + Math.sin(time * 0.68) * 0.06;
 
-      haloSprite.scale.set(135 * coreBreath, 135 * coreBreath, 1);
-      haloMat.opacity = 0.38 * haloAlpha;
+        // Inner core resolves into a tight, crisp stellar singularity when flying inside
+        const innerCoreScale = Math.min(22.0, Math.max(0.4, distToCore * 0.22)) * zoomCoreScale;
+        innerCoreSprite.scale.set(
+          innerCoreScale * (1.0 + Math.sin(time * 1.1) * 0.03),
+          innerCoreScale * (1.0 + Math.sin(time * 1.1) * 0.03),
+          1
+        );
+        innerCoreMat.opacity = Math.min(1.0, THREE.MathUtils.smoothstep(distToCore, 0.4, 18.0) * 0.92 + 0.06) * corePulseLuminosity * zoomCoreFade;
 
-      outerHazeSprite.scale.set(195 * (1.0 + Math.sin(time * 0.45) * 0.03), 195 * (1.0 + Math.sin(time * 0.45) * 0.03), 1);
-      outerHazeMat.opacity = 0.18 * hazeAlpha;
+        coreSprite.scale.set(48 * compositeBreath, 48 * compositeBreath, 1);
+        coreMat.opacity = 0.92 * coreAlpha * corePulseLuminosity * zoomCoreFade;
+
+        // Bar rotates with the galactic bar orientation
+        barSprite.material.rotation = -galaxyAngle * 1.15;
+        barSprite.scale.set(88 * compositeBreath, 50 * (1.0 + Math.cos(time * 0.72) * 0.03) * zoomCoreScale, 1);
+        barMat.opacity = 0.60 * barAlpha * (0.95 + breathA) * zoomCoreFade;
+
+        haloSprite.scale.set(135 * compositeBreath, 135 * compositeBreath, 1);
+        haloMat.opacity = 0.28 * haloAlpha * zoomCoreFade;
+
+        outerHazeSprite.scale.set(195 * (1.0 + Math.sin(time * 0.35) * 0.025) * zoomCoreScale, 195 * (1.0 + Math.sin(time * 0.35) * 0.025) * zoomCoreScale, 1);
+        outerHazeMat.opacity = 0.14 * hazeAlpha * zoomCoreFade;
+      }
+
+      // Subtle mouse parallax depth during navigation
+      if (!s.isDragging) {
+        const targetParallaxYaw = mouse.x * 0.025;
+        const targetParallaxPitch = mouse.y * 0.018;
+        const pDamp = 1.0 - Math.exp(-delta * 3.5);
+        s.parallaxYaw = THREE.MathUtils.lerp(s.parallaxYaw, targetParallaxYaw, pDamp);
+        s.parallaxPitch = THREE.MathUtils.lerp(s.parallaxPitch, targetParallaxPitch, pDamp);
+      } else {
+        s.parallaxYaw = THREE.MathUtils.lerp(s.parallaxYaw, 0, 0.1);
+        s.parallaxPitch = THREE.MathUtils.lerp(s.parallaxPitch, 0, 0.1);
+      }
 
       // Smooth Auto-rotation drift
       if (isAutoRotatingRef.current && s.autoRotate) {
-        s.targetYaw += delta * 0.045 * driftSpeedRef.current;
+        s.targetYaw += delta * 0.038 * driftSpeedRef.current * motionScale;
       }
 
       // Smooth inertia damping on rotation release
@@ -1778,30 +1983,66 @@ export function AiMemoryGalaxySection({
       // Constrain pitch
       s.targetPitch = Math.max(-0.25, Math.min(1.42, s.targetPitch));
 
+      // Track target memory node smoothly as it orbits
+      if (sel.selectedId) {
+        const selMesh = nodeMeshes.find((m) => m.item.id === sel.selectedId);
+        if (selMesh) {
+          s.targetLookAt.lerp(selMesh.starSprite.position, 0.05);
+        }
+      }
+
       // Frame-rate independent delta-timed critically damped smoothing
-      const dampFactor = 1.0 - Math.exp(-delta * 7.5);
+      const dampFactor = 1.0 - Math.exp(-delta * 6.5);
       s.yaw = THREE.MathUtils.lerp(s.yaw, s.targetYaw, dampFactor);
       s.pitch = THREE.MathUtils.lerp(s.pitch, s.targetPitch, dampFactor);
-      s.radius = THREE.MathUtils.lerp(s.radius, s.targetRadius, dampFactor);
+
+      // Logarithmic/exponential radius interpolation for seamless infinite zoom across all scales
+      const prevRadius = s.radius;
+      const currentLogRadius = Math.log(Math.max(0.01, s.radius));
+      const targetLogRadius = Math.log(Math.max(0.01, s.targetRadius));
+      const newLogRadius = THREE.MathUtils.lerp(currentLogRadius, targetLogRadius, dampFactor);
+      s.radius = Math.exp(newLogRadius);
+      const radiusDelta = s.radius - prevRadius;
+
+      // Real-time spatial audio altitude crossfading & zoom whoosh
+      spaceSoundscape.updateAltitude(s.radius, radiusDelta);
+
       s.lookAt.lerp(s.targetLookAt, dampFactor);
 
+      const effectiveYaw = s.yaw + s.parallaxYaw;
+      const effectivePitch = s.pitch + s.parallaxPitch;
+
       // Spherical camera positioning
-      const cy = Math.sin(s.pitch) * s.radius;
-      const horizontalR = Math.cos(s.pitch) * s.radius;
-      const cx = Math.sin(s.yaw) * horizontalR;
-      const cz = Math.cos(s.yaw) * horizontalR;
+      const cy = Math.sin(effectivePitch) * s.radius;
+      const horizontalR = Math.cos(effectivePitch) * s.radius;
+      const cx = Math.sin(effectiveYaw) * horizontalR;
+      const cz = Math.cos(effectiveYaw) * horizontalR;
 
       camera.position.set(cx + s.lookAt.x, cy + s.lookAt.y, cz + s.lookAt.z);
       camera.lookAt(s.lookAt);
 
-      // Periodic altitude notification for micro or macro distances
-      if (Math.abs(s.radius - lastReportedAltitude.current) > (s.radius < 10 ? 0.05 : 1.0)) {
-        lastReportedAltitude.current = s.radius;
-        setCurrentAltitude(s.radius < 10 ? Number(s.radius.toFixed(2)) : Math.round(s.radius));
+      // Throttled altitude notification for micro or macro distances
+      const nowMs = performance.now();
+      if (nowMs - lastAltitudeUpdateMs.current > 120) {
+        if (Math.abs(s.radius - lastReportedAltitude.current) > (s.radius < 10 ? 0.05 : 0.8)) {
+          lastReportedAltitude.current = s.radius;
+          lastAltitudeUpdateMs.current = nowMs;
+          setCurrentAltitude(s.radius < 10 ? Number(s.radius.toFixed(2)) : Math.round(s.radius));
+        }
       }
 
-      // Update individual memory star scales & coronas
-      nodeMeshes.forEach(({ starSprite, spikeSprite, item }) => {
+      // ── Update individual memory star celestial orbits, scales & coronas ──
+      nodeMeshes.forEach(({ starSprite, spikeSprite, proxyMesh, item, radius0, theta0, y0 }) => {
+        // Celestial orbit in galactic plane
+        const theta = theta0 + galaxyAngle;
+        const curX = Math.cos(theta) * radius0;
+        const curZ = Math.sin(theta) * radius0;
+        const curY = y0 + Math.sin(time * 0.35 + radius0 * 0.08) * 0.16;
+
+        starSprite.position.set(curX, curY, curZ);
+        if (spikeSprite) spikeSprite.position.set(curX, curY, curZ);
+        proxyMesh.position.set(curX, curY, curZ);
+
         const isSel = sel.selectedId === item.id;
         const isNeighbor = sel.neighborIds.has(item.id);
         const isHovered = hoveredMemoryId === item.id;
@@ -1813,43 +2054,46 @@ export function AiMemoryGalaxySection({
 
         if (sel.selectedId) {
           if (isSel) {
-            scaleMult = 1.75;
+            const selPulse = 1.0 + Math.sin(time * 3.2) * 0.08;
+            scaleMult = 1.75 * selPulse;
             targetOpacity = 1.0;
             starSprite.material.color.setHex(0xf26522);
           } else if (isNeighbor) {
-            scaleMult = 1.35;
-            targetOpacity = 0.95;
+            const neighborPulse = 1.0 + Math.sin(time * 2.5 + item.anchor.x) * 0.06;
+            scaleMult = 1.38 * neighborPulse;
+            targetOpacity = 0.96;
             starSprite.material.color.setHex(0xffe2b8);
           } else {
-            scaleMult = 0.75;
-            targetOpacity = 0.22;
+            scaleMult = 0.72;
+            targetOpacity = 0.20;
             const cluster = TOPIC_CLUSTERS.find((c) => c.id === item.clusterId);
-            starSprite.material.color.copy(cluster ? cluster.colorThree : new THREE.Color(0xffffff));
+            starSprite.material.color.copy(cluster ? cluster.colorThree : whiteColor);
           }
         } else if (isHovered) {
-          scaleMult = 1.45;
+          scaleMult = 1.48;
           targetOpacity = 1.0;
           starSprite.material.color.setHex(0xf26522);
         } else if (sel.clusterId) {
           if (isInCluster) {
-            scaleMult = 1.25;
+            const clusterPulse = 1.0 + Math.sin(time * 2.4) * 0.06;
+            scaleMult = 1.32 * clusterPulse;
             targetOpacity = 1.0;
           } else {
-            scaleMult = 0.7;
-            targetOpacity = 0.25;
+            scaleMult = 0.68;
+            targetOpacity = 0.22;
           }
           const cluster = TOPIC_CLUSTERS.find((c) => c.id === item.clusterId);
-          starSprite.material.color.copy(cluster ? cluster.colorThree : new THREE.Color(0xffffff));
+          starSprite.material.color.copy(cluster ? cluster.colorThree : whiteColor);
         } else {
-          const twinkle = 1.0 + Math.sin(time * 2.2 + item.anchor.x * 0.4) * 0.12;
+          const twinkle = 1.0 + Math.sin(time * 2.0 + item.anchor.x * 0.4) * 0.10;
           scaleMult = twinkle;
           const cluster = TOPIC_CLUSTERS.find((c) => c.id === item.clusterId);
-          starSprite.material.color.copy(cluster ? cluster.colorThree : new THREE.Color(0xffffff));
+          starSprite.material.color.copy(cluster ? cluster.colorThree : whiteColor);
         }
 
-        const distToStar = camera.position.distanceTo(item.anchor);
+        const distToStar = camera.position.distanceTo(starSprite.position);
         // Distance-adaptive scale compensation so close stars stay crisp and don't overwhelm the camera
-        const closeDistFactor = Math.min(1.0, Math.max(0.24, distToStar / 28.0));
+        const closeDistFactor = THREE.MathUtils.clamp(distToStar / 18.0, 0.04, 1.0);
         const finalScale = baseScale * scaleMult * closeDistFactor;
         starSprite.scale.set(finalScale, finalScale, 1);
         starSprite.material.opacity = THREE.MathUtils.lerp(
@@ -1870,8 +2114,42 @@ export function AiMemoryGalaxySection({
         }
       });
 
-      // Update Gravitational Filaments (Connecting Trails)
-      edgeMeshes.forEach(({ line, edge }) => {
+      // ── Update Gravitational Filaments (Connecting Trails) ──
+      edgeMeshes.forEach(({ line, edge, m1Idx, m2Idx, curvePoints }) => {
+        const p1 = nodeMeshes[m1Idx].starSprite.position;
+        const p2 = nodeMeshes[m2Idx].starSprite.position;
+
+        const chord = tempChord.subVectors(p2, p1);
+        const chordLen = chord.length();
+        const tangent = tempTangent.copy(chord).normalize();
+        let perp = tempPerp.crossVectors(tangent, tempUp).normalize();
+        if (perp.lengthSq() < 0.01) {
+          perp = tempPerp.crossVectors(tangent, tempForward).normalize();
+        }
+
+        const archHeight = Math.min(2.8, chordLen * 0.09);
+        const controlPoint = tempControlPoint
+          .addVectors(p1, p2)
+          .multiplyScalar(0.5)
+          .addScaledVector(perp, archHeight);
+
+        const posAttr = line.geometry.attributes.position as THREE.BufferAttribute;
+        const posArray = posAttr.array as Float32Array;
+
+        for (let step = 0; step <= curveResolution; step++) {
+          const t = step / curveResolution;
+          const invT = 1.0 - t;
+          const x = invT * invT * p1.x + 2.0 * invT * t * controlPoint.x + t * t * p2.x;
+          const y = invT * invT * p1.y + 2.0 * invT * t * controlPoint.y + t * t * p2.y;
+          const z = invT * invT * p1.z + 2.0 * invT * t * controlPoint.z + t * t * p2.z;
+
+          posArray[step * 3 + 0] = x;
+          posArray[step * 3 + 1] = y;
+          posArray[step * 3 + 2] = z;
+          curvePoints[step].set(x, y, z);
+        }
+        posAttr.needsUpdate = true;
+
         const mat = line.material as THREE.LineBasicMaterial;
         const isConnected =
           sel.selectedId === edge.sourceId ||
@@ -1882,20 +2160,33 @@ export function AiMemoryGalaxySection({
         if (!showFilamentsRef.current) {
           mat.opacity = THREE.MathUtils.lerp(mat.opacity, 0.0, 0.15);
         } else if (isConnected) {
+          const pulseAlpha = 0.82 + Math.sin(time * 3.5) * 0.08;
           mat.color.setHex(0xf26522);
-          mat.opacity = THREE.MathUtils.lerp(mat.opacity, 0.85, 0.12);
+          mat.opacity = THREE.MathUtils.lerp(mat.opacity, pulseAlpha, 0.14);
         } else if (sel.selectedId) {
           mat.color.setHex(0x3a404d);
-          mat.opacity = THREE.MathUtils.lerp(mat.opacity, 0.04, 0.1);
+          mat.opacity = THREE.MathUtils.lerp(mat.opacity, 0.03, 0.1);
+        } else if (sel.clusterId) {
+          const m1 = DEMO_MEMORIES[m1Idx];
+          const m2 = DEMO_MEMORIES[m2Idx];
+          const inCluster = m1.clusterId === sel.clusterId && m2.clusterId === sel.clusterId;
+          if (inCluster) {
+            mat.color.setHex(0xf26522);
+            mat.opacity = THREE.MathUtils.lerp(mat.opacity, 0.55, 0.1);
+          } else {
+            mat.color.setHex(0x3a404d);
+            mat.opacity = THREE.MathUtils.lerp(mat.opacity, 0.03, 0.1);
+          }
         } else {
           mat.color.setHex(0x4f5869);
-          // Gently brighten filaments on deep zoom into memory constellations
-          const zoomFilamentBoost = THREE.MathUtils.lerp(0.48, 0.18, Math.min(1.0, s.radius / 90.0));
+          const idlePulse = 0.18 + Math.sin(time * 1.2 + m1Idx) * 0.03;
+          const zoomFilamentBoost = THREE.MathUtils.lerp(0.48, idlePulse, Math.min(1.0, s.radius / 90.0));
           mat.opacity = THREE.MathUtils.lerp(mat.opacity, zoomFilamentBoost, 0.08);
         }
       });
 
-      // Update Traveling Photons
+      // ── Update Traveling Recall Photons (Synaptic Light Pulses) ──
+      const pArr = photonPos;
       const activeEdges = edgeMeshes.filter(
         (e) =>
           showFilamentsRef.current &&
@@ -1905,29 +2196,39 @@ export function AiMemoryGalaxySection({
             hoveredMemoryId === e.edge.targetId)
       );
 
-      const pArr = photonPos;
-      for (let i = 0; i < photonCount; i++) {
-        if (activeEdges.length > 0) {
-          const targetEdge = activeEdges[i % activeEdges.length];
+      const isInteractive = activeEdges.length > 0;
+      const edgesPool = isInteractive ? activeEdges : (showFilamentsRef.current ? edgeMeshes : []);
 
+      if (edgesPool.length > 0) {
+        photonMat.uniforms.uOpacity.value = isInteractive ? 0.95 : 0.45;
+        photonMat.uniforms.uBaseSize.value = isInteractive ? 3.2 : 2.0;
+        photonMat.uniforms.uColor.value.setHex(isInteractive ? 0xf26522 : 0xffe2b8);
 
-          const tCycle = (time * 0.8 + i * 0.28) % 1.0;
+        const speedMultiplier = isInteractive ? 0.65 : 0.20;
+        for (let i = 0; i < photonCount; i++) {
+          const targetEdge = edgesPool[i % edgesPool.length];
+          const tCycle = (time * speedMultiplier + i * (1.0 / photonCount)) % 1.0;
+          photonProgress[i] = tCycle;
+
           const sampleIdx = Math.floor(tCycle * (targetEdge.curvePoints.length - 1));
           const pt = targetEdge.curvePoints[sampleIdx];
-
 
           pArr[i * 3 + 0] = pt.x;
           pArr[i * 3 + 1] = pt.y;
           pArr[i * 3 + 2] = pt.z;
-        } else {
+        }
+      } else {
+        for (let i = 0; i < photonCount; i++) {
+          photonProgress[i] = 0;
           pArr[i * 3 + 0] = -1000;
           pArr[i * 3 + 1] = -1000;
           pArr[i * 3 + 2] = -1000;
         }
       }
       photonGeo.attributes.position.needsUpdate = true;
+      photonGeo.attributes.aProgress.needsUpdate = true;
 
-      // Update 3D Floating Memory Star Labels (Memory Graph emergence on deep zoom)
+      // ── Update 3D Floating Memory Star Labels (Memory Graph emergence on deep zoom) ──
       if (labelContainerRef.current) {
         const labels = labelContainerRef.current.children;
         const width = container.clientWidth;
@@ -1943,10 +2244,8 @@ export function AiMemoryGalaxySection({
             continue;
           }
 
-          const mem = DEMO_MEMORIES[i];
-
-
-          const distToCam = camera.position.distanceTo(mem.anchor);
+          const starPos = nodeMeshes[i].starSprite.position;
+          const distToCam = camera.position.distanceTo(starPos);
 
           // Only display labels for stars in reasonable view range
           if (distToCam > 125.0 || distToCam < 0.6) {
@@ -1955,7 +2254,7 @@ export function AiMemoryGalaxySection({
             continue;
           }
 
-          tempVec.copy(mem.anchor).project(camera);
+          tempVec.copy(starPos).project(camera);
 
           // Check if in front of camera (-1 to 1 clip space)
           if (tempVec.z > 0 && tempVec.z < 1 && Math.abs(tempVec.x) < 0.95 && Math.abs(tempVec.y) < 0.95) {
@@ -2009,14 +2308,13 @@ export function AiMemoryGalaxySection({
 
         if (s.isPanning) {
           // Pan camera in camera's view plane for particle-by-particle deep exploration
-          const forward = new THREE.Vector3();
-          camera.getWorldDirection(forward);
-          const right = new THREE.Vector3().crossVectors(forward, camera.up).normalize();
-          const up = camera.up.clone().normalize();
+          camera.getWorldDirection(panForward);
+          panRight.crossVectors(panForward, camera.up).normalize();
+          panUp.copy(camera.up).normalize();
 
           const panFactor = Math.max(0.005, s.radius * 0.0018);
-          s.targetLookAt.addScaledVector(right, -dx * panFactor);
-          s.targetLookAt.addScaledVector(up, dy * panFactor);
+          s.targetLookAt.addScaledVector(panRight, -dx * panFactor);
+          s.targetLookAt.addScaledVector(panUp, dy * panFactor);
           return;
         }
 
@@ -2032,9 +2330,7 @@ export function AiMemoryGalaxySection({
       raycaster.setFromCamera(mouse, camera);
 
       // Raycast memory star proxies
-      const intersects = raycaster.intersectObjects(
-        nodeMeshes.map((m) => m.proxyMesh)
-      );
+      const intersects = raycaster.intersectObjects(proxyMeshes);
 
       if (intersects.length > 0) {
         const hitProxy = intersects[0].object as THREE.Mesh;
@@ -2044,7 +2340,7 @@ export function AiMemoryGalaxySection({
         if (pendingHoverNodeId !== memoryItem.id) {
           pendingHoverNodeId = memoryItem.id;
           const clusterIdx = TOPIC_CLUSTERS.findIndex((c) => c.id === memoryItem.clusterId);
-          spaceSoundscape.playNodePulse(clusterIdx !== -1 ? clusterIdx : 0, 0);
+          spaceSoundscape.playNodePulse(clusterIdx !== -1 ? clusterIdx : 0, mouse.x, memoryItem.isAnchor);
         }
 
         setHoveredMemoryId(memoryItem.id);
@@ -2072,13 +2368,13 @@ export function AiMemoryGalaxySection({
       const s = cameraStateRef.current;
 
       const delta = Math.abs(e.deltaY);
-      const zoomFactor = Math.pow(1.0018, Math.min(delta, 120));
+      const zoomFactor = Math.pow(1.0016, Math.min(delta, 100));
       if (e.deltaY > 0) {
         // Infinite Zoom Out - completely unbounded
         s.targetRadius = s.targetRadius * zoomFactor;
       } else {
-        // Infinite Zoom In - down to micro 0.05 scale
-        s.targetRadius = Math.max(0.05, s.targetRadius / zoomFactor);
+        // Infinite Zoom In - down to micro 0.04 scale
+        s.targetRadius = Math.max(0.04, s.targetRadius / zoomFactor);
       }
     };
 
@@ -2091,9 +2387,7 @@ export function AiMemoryGalaxySection({
       raycaster.setFromCamera(mouse, camera);
 
       // 1. Raycast memory stars
-      const intersects = raycaster.intersectObjects(
-        nodeMeshes.map((m) => m.proxyMesh)
-      );
+      const intersects = raycaster.intersectObjects(proxyMeshes);
 
       if (intersects.length > 0) {
         const hitProxy = intersects[0].object as THREE.Mesh;
@@ -2294,7 +2588,7 @@ export function AiMemoryGalaxySection({
                 handleSelectMemory(item.id);
               }}
             >
-              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#0a0b10]/90 backdrop-blur-md border border-white/10 hover:border-[#f26522]/50 hover:bg-[#0e1017] shadow-[0_4px_16px_rgba(0,0,0,0.7)] group transition-all">
+              <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-[#0a0b10]/92 backdrop-blur-md border border-white/10 hover:border-[#f26522]/50 hover:bg-[#0e1017] shadow-[0_4px_16px_rgba(0,0,0,0.7)] group transition-all">
                 <span
                   className="size-1.5 rounded-full shrink-0"
                   style={{
@@ -2315,46 +2609,46 @@ export function AiMemoryGalaxySection({
       </div>
 
       {/* ── TOP NAV & CONSTELLATION CLUSTER PILLS ── */}
-      <div className="absolute top-4 left-4 right-4 z-30 pointer-events-none flex flex-wrap items-center justify-between gap-3">
+      <div className="absolute top-3.5 left-4 right-4 z-30 pointer-events-none flex items-center justify-between gap-3">
         {/* Left: Galaxy Constellations Navigation */}
-        <div className="pointer-events-auto flex items-center gap-1.5 overflow-x-auto max-w-full pb-1 scrollbar-none">
+        <div className="pointer-events-auto flex-1 min-w-0 flex items-center gap-1.5 overflow-x-auto scrollbar-none py-1">
           <button
             onClick={handleResetView}
-            className={`px-3 py-1.5 rounded-full text-[11px] font-medium tracking-wide flex items-center gap-1.5 transition-all backdrop-blur-xl border ${
+            className={`px-3 py-1.5 rounded-lg text-[11px] font-medium tracking-tight whitespace-nowrap transition-all backdrop-blur-xl border ${
               !selectedMemoryId && !selectedClusterId && !selectedGalaxyId && !isTourActive
-                ? "bg-white text-black border-white shadow-[0_4px_20px_rgba(255,255,255,0.2)]"
-                : "bg-[#0b0c10]/85 text-[#a1a1aa] border-white/10 hover:border-white/20 hover:text-white"
+                ? "bg-white text-black border-white shadow-[0_2px_12px_rgba(255,255,255,0.2)] font-semibold"
+                : "bg-[#0c0d12]/85 text-[#9ca3af] border-white/10 hover:border-white/25 hover:text-white hover:bg-white/[0.04]"
             }`}
           >
-            <Orbit className="size-3 text-[#f26522]" />
-            <span>Full Galaxy View</span>
+            Full Galaxy View
           </button>
 
           {/* Andromeda Galaxy Shortcut */}
           <button
             onClick={() => handleSelectGalaxy("galaxy-andromeda")}
-            className={`px-3 py-1.5 rounded-full text-[11px] font-medium tracking-wide flex items-center gap-1.5 transition-all whitespace-nowrap backdrop-blur-xl border ${
+            className={`px-3 py-1.5 rounded-lg text-[11px] font-medium tracking-tight whitespace-nowrap transition-all backdrop-blur-xl border ${
               selectedGalaxyId === "galaxy-andromeda"
-                ? "bg-[#3b82f6] text-white border-[#3b82f6] shadow-[0_4px_18px_rgba(59,130,246,0.35)]"
-                : "bg-[#0b0c10]/85 text-[#a1a1aa] border-white/10 hover:border-white/20 hover:text-white"
+                ? "bg-[#3b82f6] text-white border-[#3b82f6] shadow-[0_2px_12px_rgba(59,130,246,0.35)] font-semibold"
+                : "bg-[#0c0d12]/85 text-[#9ca3af] border-white/10 hover:border-white/25 hover:text-white hover:bg-white/[0.04]"
             }`}
           >
-            <Sparkles className="size-3 text-[#93c5fd]" />
-            <span>🌌 Andromeda (M31)</span>
+            Andromeda (M31)
           </button>
 
           {/* Triangulum Galaxy Shortcut */}
           <button
             onClick={() => handleSelectGalaxy("galaxy-triangulum")}
-            className={`px-3 py-1.5 rounded-full text-[11px] font-medium tracking-wide flex items-center gap-1.5 transition-all whitespace-nowrap backdrop-blur-xl border ${
+            className={`px-3 py-1.5 rounded-lg text-[11px] font-medium tracking-tight whitespace-nowrap transition-all backdrop-blur-xl border ${
               selectedGalaxyId === "galaxy-triangulum"
-                ? "bg-[#8b5cf6] text-white border-[#8b5cf6] shadow-[0_4px_18px_rgba(139,92,246,0.35)]"
-                : "bg-[#0b0c10]/85 text-[#a1a1aa] border-white/10 hover:border-white/20 hover:text-white"
+                ? "bg-[#8b5cf6] text-white border-[#8b5cf6] shadow-[0_2px_12px_rgba(139,92,246,0.35)] font-semibold"
+                : "bg-[#0c0d12]/85 text-[#9ca3af] border-white/10 hover:border-white/25 hover:text-white hover:bg-white/[0.04]"
             }`}
           >
-            <Sparkles className="size-3 text-[#c4b5fd]" />
-            <span>✨ Triangulum (M33)</span>
+            Triangulum (M33)
           </button>
+
+          {/* Subtle separator */}
+          <span className="w-px h-3.5 bg-white/15 mx-0.5 shrink-0" />
 
           {TOPIC_CLUSTERS.map((cluster) => {
             const isActive = selectedClusterId === cluster.id;
@@ -2362,29 +2656,23 @@ export function AiMemoryGalaxySection({
               <button
                 key={cluster.id}
                 onClick={() => handleSelectCluster(cluster.id)}
-                className={`px-3 py-1.5 rounded-full text-[11px] font-medium tracking-wide flex items-center gap-1.5 transition-all whitespace-nowrap backdrop-blur-xl border ${
+                className={`px-3 py-1.5 rounded-lg text-[11px] font-medium tracking-tight whitespace-nowrap transition-all backdrop-blur-xl border ${
                   isActive
-                    ? "bg-[#f26522] text-white border-[#f26522] shadow-[0_4px_18px_rgba(242,101,34,0.35)]"
-                    : "bg-[#0b0c10]/85 text-[#a1a1aa] border-white/10 hover:border-white/20 hover:text-white"
+                    ? "bg-[#f26522] text-white border-[#f26522] shadow-[0_2px_12px_rgba(242,101,34,0.35)] font-semibold"
+                    : "bg-[#0c0d12]/85 text-[#9ca3af] border-white/10 hover:border-white/25 hover:text-white hover:bg-white/[0.04]"
                 }`}
               >
-                <span
-                  className="size-1.5 rounded-full"
-                  style={{
-                    backgroundColor: isActive ? "#ffffff" : cluster.colorHex,
-                  }}
-                />
-                <span>{cluster.name}</span>
+                {cluster.name}
               </button>
             );
           })}
         </div>
 
         {/* Right: Instant Star Search & Quick Actions */}
-        <div className="pointer-events-auto flex items-center gap-2 relative">
+        <div className="pointer-events-auto flex items-center gap-2 shrink-0 relative">
+          <SpaceSoundToggle />
           <div className="relative">
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#0b0c10]/90 backdrop-blur-xl border border-white/15 focus-within:border-[#f26522] transition-colors shadow-lg">
-              <Search className="size-3.5 text-[#a1a1aa]" />
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#0c0d12]/90 backdrop-blur-xl border border-white/12 focus-within:border-white/30 focus-within:ring-1 focus-within:ring-white/20 transition-all shadow-md">
               <input
                 ref={searchInputRef}
                 type="text"
@@ -2395,7 +2683,7 @@ export function AiMemoryGalaxySection({
                 }}
                 onFocus={() => setIsSearchOpen(true)}
                 placeholder="Search galaxy stars... (/)"
-                className="bg-transparent text-xs text-white placeholder-[#71717a] outline-none w-44 md:w-56 font-normal"
+                className="bg-transparent text-xs text-white placeholder-[#71717a] outline-none w-36 sm:w-44 md:w-52 font-normal"
               />
               {searchQuery && (
                 <button
@@ -2403,7 +2691,7 @@ export function AiMemoryGalaxySection({
                     setSearchQuery("");
                     setIsSearchOpen(false);
                   }}
-                  className="text-[#a1a1aa] hover:text-white"
+                  className="text-[#a1a1aa] hover:text-white transition-colors"
                 >
                   <X className="size-3.5" />
                 </button>
@@ -2412,7 +2700,7 @@ export function AiMemoryGalaxySection({
 
             {/* Search Dropdown Results */}
             {isSearchOpen && searchResults.length > 0 && (
-              <div className="absolute right-0 top-full mt-2 w-80 max-h-80 overflow-y-auto rounded-2xl bg-[#0e0f14]/95 backdrop-blur-2xl border border-white/15 shadow-[0_24px_50px_rgba(0,0,0,0.85)] p-2 z-50">
+              <div className="absolute right-0 top-full mt-2 w-80 max-h-80 overflow-y-auto rounded-xl bg-[#0c0d12]/95 backdrop-blur-2xl border border-white/15 shadow-[0_24px_50px_rgba(0,0,0,0.85)] p-2 z-50">
                 <div className="text-[10px] font-mono uppercase text-[#71717a] px-2 py-1 flex items-center justify-between">
                   <span>Matching Memory Stars</span>
                   <span className="text-[#f26522] font-semibold">{searchResults.length}</span>
@@ -2421,7 +2709,7 @@ export function AiMemoryGalaxySection({
                   <button
                     key={result.id}
                     onClick={() => handleSelectMemory(result.id)}
-                    className="w-full text-left px-2.5 py-2 rounded-xl hover:bg-white/10 transition-colors flex flex-col gap-0.5 group"
+                    className="w-full text-left px-2.5 py-2 rounded-lg hover:bg-white/10 transition-colors flex flex-col gap-0.5 group"
                   >
                     <div className="flex items-center justify-between text-[11px]">
                       <span className="font-medium text-white group-hover:text-[#f26522] transition-colors flex items-center gap-1.5">
@@ -2444,11 +2732,10 @@ export function AiMemoryGalaxySection({
           {(selectedMemoryId || selectedClusterId || selectedGalaxyId || isTourActive) && (
             <button
               onClick={handleResetView}
-              className="px-2.5 py-1.5 rounded-full bg-[#0b0c10]/90 backdrop-blur-xl border border-white/15 hover:border-white/30 text-xs text-[#a1a1aa] hover:text-white flex items-center gap-1.5 transition-colors shadow-lg"
+              className="px-3 py-1.5 rounded-lg bg-[#0c0d12]/90 backdrop-blur-xl border border-white/12 hover:border-white/30 text-xs font-medium text-[#9ca3af] hover:text-white flex items-center transition-all shadow-md"
               title="Reset View (Esc)"
             >
-              <RotateCcw className="size-3.5" />
-              <span className="hidden sm:inline">Reset</span>
+              <span>Reset</span>
             </button>
           )}
         </div>
@@ -2456,7 +2743,7 @@ export function AiMemoryGalaxySection({
 
       {/* ── GUIDED TOUR ACTIVE BANNER (TOP-CENTER) ── */}
       {isTourActive && (
-        <div className="absolute top-16 left-1/2 -translate-x-1/2 z-30 pointer-events-auto flex items-center gap-3 px-4 py-2 rounded-full bg-[#0b0c10]/95 backdrop-blur-2xl border border-[#f26522]/40 shadow-[0_12px_32px_rgba(242,101,34,0.25)] animate-in fade-in slide-in-from-top-3 duration-200">
+        <div className="absolute top-16 left-1/2 -translate-x-1/2 z-30 pointer-events-auto flex items-center gap-3 px-3.5 py-1.5 rounded-lg bg-[#0b0c10]/95 backdrop-blur-2xl border border-[#f26522]/40 shadow-[0_12px_32px_rgba(242,101,34,0.25)] animate-in fade-in slide-in-from-top-3 duration-200">
           <div className="flex items-center gap-2">
             <Route className="size-3.5 text-[#f26522] animate-pulse" />
             <span className="text-[11px] font-mono uppercase tracking-wider text-[#f26522] font-semibold">
@@ -2505,7 +2792,6 @@ export function AiMemoryGalaxySection({
         >
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-1.5">
-              <span className="size-1.5 rounded-full bg-[#f26522]" />
               <span className="font-mono text-[9px] uppercase tracking-wider text-[#f26522] font-semibold">
                 {hoveredNode.topic}
               </span>
@@ -2531,11 +2817,10 @@ export function AiMemoryGalaxySection({
 
       {/* ── COMPREHENSIVE MEMORY DETAIL PANEL (ON STAR SELECTION) ── */}
       {selectedMemory && (
-        <div className="absolute bottom-16 right-4 z-40 max-w-[400px] w-full p-5 rounded-2xl bg-[#0a0b10]/95 backdrop-blur-2xl border border-white/[0.08] shadow-[0_24px_60px_rgba(0,0,0,0.85),inset_0_1px_0_0_rgba(255,255,255,0.06)] animate-in fade-in slide-in-from-bottom-3 duration-200 space-y-3.5">
+        <div className="absolute bottom-16 right-4 z-40 max-w-[400px] w-full p-5 rounded-xl bg-[#0a0b10]/95 backdrop-blur-2xl border border-white/[0.08] shadow-[0_24px_60px_rgba(0,0,0,0.85),inset_0_1px_0_0_rgba(255,255,255,0.06)] animate-in fade-in slide-in-from-bottom-3 duration-200 space-y-3.5">
           {/* Header */}
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2">
-              <span className="size-2 rounded-full bg-[#f26522] shadow-[0_0_8px_#f26522]" />
               <span className="text-[11px] font-mono uppercase tracking-wider text-[#f26522] font-semibold">
                 {selectedMemory.topic}
               </span>
@@ -2547,7 +2832,7 @@ export function AiMemoryGalaxySection({
             </div>
             <button
               onClick={() => setSelectedMemoryId(null)}
-              className="text-zinc-400 hover:text-white size-6 flex items-center justify-center rounded-full hover:bg-white/10 transition-colors"
+              className="text-zinc-400 hover:text-white size-6 flex items-center justify-center rounded-md hover:bg-white/10 transition-colors"
               title="Close Panel"
             >
               <X className="size-3.5" />
@@ -2571,7 +2856,7 @@ export function AiMemoryGalaxySection({
           </div>
 
           {/* Gravitational Filaments */}
-          <div className="space-y-2.5 pt-1">
+          <div className="space-y-2 pt-1">
             <div className="flex items-center justify-between text-[10px] font-mono uppercase tracking-wider">
               <span className="flex items-center gap-1.5 text-zinc-400 font-medium">
                 <Link2 className="size-3 text-[#f26522]" />
@@ -2580,12 +2865,13 @@ export function AiMemoryGalaxySection({
               <span className="text-zinc-600">Click star to glide</span>
             </div>
 
-            <div className="space-y-2 max-h-56 overflow-y-auto pr-1 scrollbar-none">
+            <div className="space-y-3 max-h-56 overflow-y-auto pr-1 scrollbar-none pt-1">
               {relatedConnections.map(({ edge, otherNode }) => (
                 <button
                   key={edge.id}
                   onClick={() => handleSelectMemory(otherNode.id)}
-                  className="w-full text-left p-3 rounded-xl bg-white/[0.03] hover:bg-white/[0.07] border border-white/[0.06] hover:border-[#f26522]/30 transition-all duration-200 group flex flex-col gap-1.5"
+                  onMouseEnter={() => spaceSoundscape.playFilamentResonance(0.2)}
+                  className="w-full text-left py-1 hover:opacity-85 transition-opacity duration-150 group flex flex-col gap-1 cursor-pointer"
                 >
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] font-mono font-semibold uppercase tracking-wider text-[#f26522]">
@@ -2596,7 +2882,7 @@ export function AiMemoryGalaxySection({
                   <div className="text-[13px] font-medium text-white group-hover:text-[#f26522] transition-colors leading-snug">
                     {otherNode.title}
                   </div>
-                  <p className="text-[11px] text-zinc-400 leading-relaxed line-clamp-2">
+                  <p className="text-[11.5px] text-zinc-400 leading-relaxed line-clamp-2">
                     {edge.reason}
                   </p>
                 </button>
@@ -2608,7 +2894,7 @@ export function AiMemoryGalaxySection({
 
       {/* ── TOPIC CLUSTER DETAIL PANEL (ON CLUSTER SELECTION) ── */}
       {selectedCluster && !selectedMemoryId && (
-        <div className="absolute bottom-16 right-4 z-40 max-w-[400px] w-full p-5 rounded-2xl bg-[#0a0b10]/95 backdrop-blur-2xl border border-white/[0.08] shadow-[0_24px_60px_rgba(0,0,0,0.85),inset_0_1px_0_0_rgba(255,255,255,0.06)] animate-in fade-in slide-in-from-bottom-3 duration-200 space-y-3.5">
+        <div className="absolute bottom-16 right-4 z-40 max-w-[400px] w-full p-5 rounded-xl bg-[#0a0b10]/95 backdrop-blur-2xl border border-white/[0.08] shadow-[0_24px_60px_rgba(0,0,0,0.85),inset_0_1px_0_0_rgba(255,255,255,0.06)] animate-in fade-in slide-in-from-bottom-3 duration-200 space-y-3.5">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Layers className="size-3.5 text-[#f26522]" />
@@ -2618,7 +2904,7 @@ export function AiMemoryGalaxySection({
             </div>
             <button
               onClick={() => setSelectedClusterId(null)}
-              className="text-zinc-400 hover:text-white size-6 flex items-center justify-center rounded-full hover:bg-white/10 transition-colors"
+              className="text-zinc-400 hover:text-white size-6 flex items-center justify-center rounded-md hover:bg-white/10 transition-colors"
             >
               <X className="size-3.5" />
             </button>
@@ -2639,12 +2925,12 @@ export function AiMemoryGalaxySection({
               {DEMO_MEMORIES.filter((m) => m.clusterId === selectedCluster.id).length})
             </div>
 
-            <div className="space-y-1.5 max-h-56 overflow-y-auto pr-1 scrollbar-none">
+            <div className="space-y-2 max-h-56 overflow-y-auto pr-1 scrollbar-none pt-1">
               {DEMO_MEMORIES.filter((m) => m.clusterId === selectedCluster.id).map((mem) => (
                 <button
                   key={mem.id}
                   onClick={() => handleSelectMemory(mem.id)}
-                  className="w-full text-left p-2.5 rounded-xl bg-white/[0.03] hover:bg-white/[0.07] border border-white/[0.06] hover:border-[#f26522]/30 transition-all flex items-center justify-between group"
+                  className="w-full text-left py-1 hover:opacity-85 transition-opacity flex items-center justify-between group cursor-pointer"
                 >
                   <div>
                     <div className="text-xs font-medium text-white group-hover:text-[#f26522] transition-colors flex items-center gap-1.5">
@@ -2663,7 +2949,7 @@ export function AiMemoryGalaxySection({
 
       {/* ── COMPANION GALAXY DOSSIER PANEL (DISCOVERY COSMOS DEEP FIELD) ── */}
       {selectedGalaxy && !selectedMemoryId && (
-        <div className="absolute bottom-16 right-4 z-40 max-w-[420px] w-full p-5 rounded-2xl bg-[#0a0b10]/95 backdrop-blur-2xl border border-white/[0.08] shadow-[0_24px_60px_rgba(0,0,0,0.85),inset_0_1px_0_0_rgba(255,255,255,0.06)] animate-in fade-in slide-in-from-bottom-3 duration-200 space-y-3.5">
+        <div className="absolute bottom-16 right-4 z-40 max-w-[420px] w-full p-5 rounded-xl bg-[#0a0b10]/95 backdrop-blur-2xl border border-white/[0.08] shadow-[0_24px_60px_rgba(0,0,0,0.85),inset_0_1px_0_0_rgba(255,255,255,0.06)] animate-in fade-in slide-in-from-bottom-3 duration-200 space-y-3.5">
           {/* Header */}
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2">
@@ -2674,7 +2960,7 @@ export function AiMemoryGalaxySection({
             </div>
             <button
               onClick={() => setSelectedGalaxyId(null)}
-              className="text-zinc-400 hover:text-white size-6 flex items-center justify-center rounded-full hover:bg-white/10 transition-colors"
+              className="text-zinc-400 hover:text-white size-6 flex items-center justify-center rounded-md hover:bg-white/10 transition-colors"
               title="Close Dossier"
             >
               <X className="size-3.5" />
@@ -2692,7 +2978,7 @@ export function AiMemoryGalaxySection({
           </div>
 
           {/* Distance & Telemetry */}
-          <div className="flex items-center justify-between p-3 rounded-xl bg-white/[0.02]">
+          <div className="flex items-center justify-between py-1">
             <div className="space-y-0.5">
               <span className="text-[9px] font-mono uppercase text-zinc-500">Distance from Milky Way</span>
               <div className="text-[12px] font-mono font-medium text-white">
@@ -2734,10 +3020,6 @@ export function AiMemoryGalaxySection({
                         : "bg-white/[0.04] text-zinc-400 hover:text-white hover:bg-white/[0.08]"
                     }`}
                   >
-                    <span
-                      className="size-1.5 rounded-full"
-                      style={{ backgroundColor: isCurrent ? "#000000" : g.colorHex }}
-                    />
                     <span>{g.name.split(" (")[0]}</span>
                   </button>
                 );
@@ -2748,7 +3030,7 @@ export function AiMemoryGalaxySection({
       )}
 
       {/* ── BOTTOM TELEMETRY HUD (BOTTOM-LEFT) ── */}
-      <div className="absolute bottom-4 left-4 z-20 pointer-events-none hidden md:flex items-center gap-3 text-[10px] font-mono text-[#71717a] bg-[#0b0c10]/85 backdrop-blur-xl px-4 py-2 rounded-full border border-white/10 shadow-lg">
+      <div className="absolute bottom-4 left-4 z-20 pointer-events-none hidden md:flex items-center gap-3 text-[10px] font-mono text-[#71717a] bg-[#0b0c10]/85 backdrop-blur-xl px-3.5 py-2 rounded-lg border border-white/10 shadow-lg">
         <div className="flex items-center gap-1.5 text-white/90">
           <Activity className="size-3 text-[#f26522]" />
           <span>FOCAL DISTANCE:</span>
@@ -2780,11 +3062,11 @@ export function AiMemoryGalaxySection({
       </div>
 
       {/* ── FLOATING GRAPH & GALAXY CONTROLS DOCK (BOTTOM-RIGHT) ── */}
-      <div className="absolute bottom-4 right-4 z-30 pointer-events-auto flex items-center gap-1 p-1 rounded-full bg-[#0b0c10]/90 backdrop-blur-2xl border border-white/15 shadow-[0_12px_32px_rgba(0,0,0,0.65)] text-white/80">
+      <div className="absolute bottom-4 right-4 z-30 pointer-events-auto flex items-center gap-1 p-1 rounded-lg bg-[#0b0c10]/90 backdrop-blur-2xl border border-white/15 shadow-[0_12px_32px_rgba(0,0,0,0.65)] text-white/80">
         {/* Zoom In */}
         <button
           onClick={handleZoomIn}
-          className="p-2 hover:bg-white/10 hover:text-white rounded-full transition-colors"
+          className="p-1.5 hover:bg-white/10 hover:text-white rounded-md transition-colors"
           title="Zoom In (+)"
         >
           <ZoomIn className="size-3.5" />
@@ -2793,7 +3075,7 @@ export function AiMemoryGalaxySection({
         {/* Zoom Out */}
         <button
           onClick={handleZoomOut}
-          className="p-2 hover:bg-white/10 hover:text-white rounded-full transition-colors"
+          className="p-1.5 hover:bg-white/10 hover:text-white rounded-md transition-colors"
           title="Zoom Out (-)"
         >
           <ZoomOut className="size-3.5" />
@@ -2802,7 +3084,7 @@ export function AiMemoryGalaxySection({
         {/* Fit to View / Full Overview */}
         <button
           onClick={handleResetView}
-          className="p-2 hover:bg-white/10 hover:text-white rounded-full transition-colors"
+          className="p-1.5 hover:bg-white/10 hover:text-white rounded-md transition-colors"
           title="Fit Galaxy to View (0 / Esc)"
         >
           <Maximize2 className="size-3.5" />
@@ -2811,8 +3093,8 @@ export function AiMemoryGalaxySection({
         {/* Reset Camera Angle */}
         <button
           onClick={handleResetView}
-          className="p-2 hover:bg-white/10 hover:text-white rounded-full transition-colors"
-          title="Reset Andromeda Angle"
+          className="p-1.5 hover:bg-white/10 hover:text-white rounded-md transition-colors"
+          title="Reset Camera Angle"
         >
           <RotateCcw className="size-3.5" />
         </button>
@@ -2822,7 +3104,7 @@ export function AiMemoryGalaxySection({
         {/* Auto-Rotation Drift Toggle */}
         <button
           onClick={handleToggleAutoRotate}
-          className={`p-2 rounded-full transition-colors ${
+          className={`p-1.5 rounded-md transition-colors ${
             isAutoRotating
               ? "text-[#f26522] bg-[#f26522]/15"
               : "opacity-40 hover:opacity-100 hover:bg-white/10"
@@ -2835,7 +3117,7 @@ export function AiMemoryGalaxySection({
         {/* Drift Speed Toggle (0.5x, 1x, 2x) */}
         <button
           onClick={handleCycleSpeed}
-          className="px-2 py-1 rounded-full hover:bg-white/10 text-[9px] font-mono text-[#a1a1aa] hover:text-white transition-colors"
+          className="px-2 py-1 rounded-md hover:bg-white/10 text-[9px] font-mono text-[#a1a1aa] hover:text-white transition-colors"
           title="Cycle Drift Speed"
         >
           {driftSpeed}x
@@ -2844,7 +3126,7 @@ export function AiMemoryGalaxySection({
         {/* Filaments Toggle */}
         <button
           onClick={handleToggleFilaments}
-          className={`p-2 rounded-full transition-colors ${
+          className={`p-1.5 rounded-md transition-colors ${
             showFilaments
               ? "text-[#f26522] bg-[#f26522]/15"
               : "opacity-40 hover:opacity-100 hover:bg-white/10"
@@ -2857,7 +3139,7 @@ export function AiMemoryGalaxySection({
         {/* Guided Tour Toggle */}
         <button
           onClick={isTourActive ? handleResetView : handleStartTour}
-          className={`px-2.5 py-1.5 rounded-full flex items-center gap-1 text-[10px] font-mono uppercase tracking-wider transition-all ${
+          className={`px-2.5 py-1 rounded-md flex items-center gap-1 text-[10px] font-mono uppercase tracking-wider transition-all ${
             isTourActive
               ? "bg-[#f26522] text-white font-semibold shadow-[0_2px_10px_rgba(242,101,34,0.35)]"
               : "text-[#a1a1aa] hover:text-white hover:bg-white/10"
