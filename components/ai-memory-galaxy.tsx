@@ -713,6 +713,8 @@ export function AiMemoryGalaxySection({
   });
 
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
+  const triggerStarJiggleRef = useRef<((nodeId: string, intensity?: number) => void) | null>(null);
+  const triggerZoomJiggleRef = useRef<((intensity?: number) => void) | null>(null);
   const lastAltitudeUpdateMs = useRef<number>(0);
 
   // Stable references for 60-120fps render loop
@@ -862,6 +864,11 @@ export function AiMemoryGalaxySection({
     const clusterIdx = TOPIC_CLUSTERS.findIndex((c) => c.id === target.clusterId);
     spaceSoundscape.playNodePulse(clusterIdx !== -1 ? clusterIdx : 0, screenX, target.isAnchor);
 
+    // Tactile star jiggle impulse on selection / touch
+    if (triggerStarJiggleRef.current) {
+      triggerStarJiggleRef.current(memoryId, 1.6);
+    }
+
     setSelectedMemoryId(memoryId);
     setSelectedClusterId(null);
     setIsSearchOpen(false);
@@ -902,6 +909,9 @@ export function AiMemoryGalaxySection({
     const s = cameraStateRef.current;
     s.targetRadius = Math.max(0.04, s.targetRadius * 0.65);
     spaceSoundscape.playZoomSweep("in");
+    if (triggerZoomJiggleRef.current) {
+      triggerZoomJiggleRef.current(1.2);
+    }
   }, []);
 
   // Smooth Infinite Zoom Out (Unbounded)
@@ -909,6 +919,9 @@ export function AiMemoryGalaxySection({
     const s = cameraStateRef.current;
     s.targetRadius = s.targetRadius * 1.55;
     spaceSoundscape.playZoomSweep("out");
+    if (triggerZoomJiggleRef.current) {
+      triggerZoomJiggleRef.current(0.7);
+    }
   }, []);
 
   // Toggle Auto-Rotation
@@ -1654,6 +1667,9 @@ export function AiMemoryGalaxySection({
       radius0: number;
       theta0: number;
       y0: number;
+      jiggleOffset: THREE.Vector3;
+      jiggleVelocity: THREE.Vector3;
+      phaseSeed: number;
     }[] = [];
 
     const starsGroup = new THREE.Group();
@@ -1712,10 +1728,61 @@ export function AiMemoryGalaxySection({
         radius0: r0,
         theta0: th0,
         y0: item.anchor.y,
+        jiggleOffset: new THREE.Vector3(0, 0, 0),
+        jiggleVelocity: new THREE.Vector3(0, 0, 0),
+        phaseSeed: Math.random() * Math.PI * 2,
       });
     });
 
     const proxyMeshes = nodeMeshes.map((m) => m.proxyMesh);
+
+    // Tactile Star Spring Jiggle on Touch & Zoom
+    const triggerStarJiggle = (nodeId: string, intensity: number = 1.0) => {
+      const idx = nodeMeshes.findIndex((m) => m.item.id === nodeId);
+      if (idx === -1) return;
+      const targetNode = nodeMeshes[idx];
+
+      const angle = Math.random() * Math.PI * 2;
+      const kick = 0.65 * intensity;
+      targetNode.jiggleVelocity.x += Math.cos(angle) * kick;
+      targetNode.jiggleVelocity.y += (Math.random() - 0.5) * kick * 0.9;
+      targetNode.jiggleVelocity.z += Math.sin(angle) * kick;
+
+      // Cosmic filament ripple: sympathetic vibration on connected neighbor stars
+      GRAPH_EDGES.forEach((edge) => {
+        let neighborId: string | null = null;
+        if (edge.sourceId === nodeId) neighborId = edge.targetId;
+        else if (edge.targetId === nodeId) neighborId = edge.sourceId;
+
+        if (neighborId) {
+          const nNode = nodeMeshes.find((m) => m.item.id === neighborId);
+          if (nNode) {
+            const nAngle = Math.random() * Math.PI * 2;
+            const nKick = 0.22 * intensity;
+            nNode.jiggleVelocity.x += Math.cos(nAngle) * nKick;
+            nNode.jiggleVelocity.y += (Math.random() - 0.5) * nKick * 0.7;
+            nNode.jiggleVelocity.z += Math.sin(nAngle) * nKick;
+          }
+        }
+      });
+    };
+
+    const triggerZoomJiggle = (intensity: number = 1.0) => {
+      nodeMeshes.forEach((m) => {
+        const dist = camera.position.distanceTo(m.starSprite.position);
+        if (dist < 130) {
+          const proximity = THREE.MathUtils.clamp((130 - dist) / 130, 0, 1);
+          const fAngle = Math.random() * Math.PI * 2;
+          const fAmt = 0.25 * intensity * proximity;
+          m.jiggleVelocity.x += Math.cos(fAngle) * fAmt;
+          m.jiggleVelocity.y += (Math.random() - 0.5) * fAmt * 0.8;
+          m.jiggleVelocity.z += Math.sin(fAngle) * fAmt;
+        }
+      });
+    };
+
+    triggerStarJiggleRef.current = triggerStarJiggle;
+    triggerZoomJiggleRef.current = triggerZoomJiggle;
 
     scene.add(starsGroup);
     scene.add(proxyGroup);
@@ -1910,8 +1977,8 @@ export function AiMemoryGalaxySection({
 
       // Dissolve the massive central billboard sprites as the user zooms in to inspect stars and fine particles
       // Prevents any flat beige/orange disc or blob from occluding the view during deep zoom
-      const zoomCoreFade = THREE.MathUtils.smoothstep(s.radius, 12.0, 60.0);
-      const zoomCoreScale = THREE.MathUtils.clamp((s.radius - 8.0) / 45.0, 0.0, 1.0);
+      const zoomCoreFade = THREE.MathUtils.smoothstep(s.radius, 20.0, 85.0);
+      const zoomCoreScale = THREE.MathUtils.clamp((s.radius - 15.0) / 70.0, 0.0, 1.0);
 
       if (zoomCoreFade < 0.005) {
         coreGroup.visible = false;
@@ -1919,19 +1986,19 @@ export function AiMemoryGalaxySection({
         coreGroup.visible = true;
 
         // Atmospheric bulge fade curve based on camera distance
-        const hazeAlpha = THREE.MathUtils.smoothstep(distToCore, 35.0, 110.0);
-        const haloAlpha = THREE.MathUtils.smoothstep(distToCore, 24.0, 85.0);
-        const barAlpha = THREE.MathUtils.smoothstep(distToCore, 15.0, 60.0);
+        const hazeAlpha = THREE.MathUtils.smoothstep(distToCore, 40.0, 185.0);
+        const haloAlpha = THREE.MathUtils.smoothstep(distToCore, 24.0, 115.0);
+        const barAlpha = THREE.MathUtils.smoothstep(distToCore, 12.0, 68.0);
         const coreAlpha = THREE.MathUtils.smoothstep(distToCore, 8.0, 38.0);
 
         // Organic multi-harmonic breathing
         const breathA = Math.sin(time * 0.52) * 0.035;
         const breathB = Math.cos(time * 0.88) * 0.02;
-        const compositeBreath = (1.0 + breathA + breathB) * Math.max(0.08, zoomCoreScale);
+        const compositeBreath = (1.0 + breathA + breathB) * Math.max(0.04, zoomCoreScale);
         const corePulseLuminosity = 0.94 + Math.sin(time * 0.68) * 0.06;
 
         // Inner core resolves into a tight, crisp stellar singularity when flying inside
-        const innerCoreScale = Math.min(22.0, Math.max(0.4, distToCore * 0.22)) * zoomCoreScale;
+        const innerCoreScale = Math.min(22.0, Math.max(0.2, distToCore * 0.18)) * zoomCoreScale;
         innerCoreSprite.scale.set(
           innerCoreScale * (1.0 + Math.sin(time * 1.1) * 0.03),
           innerCoreScale * (1.0 + Math.sin(time * 1.1) * 0.03),
@@ -2032,16 +2099,50 @@ export function AiMemoryGalaxySection({
       }
 
       // ── Update individual memory star celestial orbits, scales & coronas ──
-      nodeMeshes.forEach(({ starSprite, spikeSprite, proxyMesh, item, radius0, theta0, y0 }) => {
+      nodeMeshes.forEach(({ starSprite, spikeSprite, proxyMesh, item, radius0, theta0, y0, jiggleOffset, jiggleVelocity, phaseSeed }) => {
         // Celestial orbit in galactic plane
         const theta = theta0 + galaxyAngle;
         const curX = Math.cos(theta) * radius0;
         const curZ = Math.sin(theta) * radius0;
         const curY = y0 + Math.sin(time * 0.35 + radius0 * 0.08) * 0.16;
 
-        starSprite.position.set(curX, curY, curZ);
-        if (spikeSprite) spikeSprite.position.set(curX, curY, curZ);
-        proxyMesh.position.set(curX, curY, curZ);
+        // Damped harmonic oscillator physics for tactile star "jiggle"
+        const dt = Math.min(delta, 0.033);
+        const springK = 44.0;
+        const dampingC = 7.2;
+        const ax = -springK * jiggleOffset.x - dampingC * jiggleVelocity.x;
+        const ay = -springK * jiggleOffset.y - dampingC * jiggleVelocity.y;
+        const az = -springK * jiggleOffset.z - dampingC * jiggleVelocity.z;
+        jiggleVelocity.x += ax * dt;
+        jiggleVelocity.y += ay * dt;
+        jiggleVelocity.z += az * dt;
+        jiggleOffset.x += jiggleVelocity.x * dt;
+        jiggleOffset.y += jiggleVelocity.y * dt;
+        jiggleOffset.z += jiggleVelocity.z * dt;
+
+        // Zoom velocity micro-flutter wave
+        const zoomDelta = Math.abs(s.radius - s.targetRadius);
+        const isZooming = zoomDelta > 0.05;
+        const distToCamera = camera.position.distanceTo(starSprite.position);
+        const zoomFlutter =
+          isZooming && distToCamera < 120
+            ? Math.sin(time * 30.0 + phaseSeed) *
+              (0.08 * Math.min(1.0, zoomDelta * 0.12) * ((120 - distToCamera) / 120))
+            : 0;
+
+        // Deep-zoom celestial ambient float (revealed when entering cluster core r < 65 AU)
+        const deepFloatFactor = THREE.MathUtils.clamp((65.0 - s.radius) / 60.0, 0, 1);
+        const floatX = Math.sin(time * 1.1 + phaseSeed) * 0.14 * deepFloatFactor;
+        const floatY = Math.cos(time * 1.4 + phaseSeed * 1.2) * 0.16 * deepFloatFactor;
+        const floatZ = Math.sin(time * 1.0 + phaseSeed * 0.8) * 0.14 * deepFloatFactor;
+
+        const finalX = curX + jiggleOffset.x + floatX;
+        const finalY = curY + jiggleOffset.y + floatY + zoomFlutter;
+        const finalZ = curZ + jiggleOffset.z + floatZ;
+
+        starSprite.position.set(finalX, finalY, finalZ);
+        if (spikeSprite) spikeSprite.position.set(finalX, finalY, finalZ);
+        proxyMesh.position.set(finalX, finalY, finalZ);
 
         const isSel = sel.selectedId === item.id;
         const isNeighbor = sel.neighborIds.has(item.id);
@@ -2089,6 +2190,12 @@ export function AiMemoryGalaxySection({
           scaleMult = twinkle;
           const cluster = TOPIC_CLUSTERS.find((c) => c.id === item.clusterId);
           starSprite.material.color.copy(cluster ? cluster.colorThree : whiteColor);
+        }
+
+        // Tactile scale bounce during active jiggle
+        const jiggleDist = jiggleOffset.length();
+        if (jiggleDist > 0.01) {
+          scaleMult *= 1.0 + Math.sin(time * 26.0 + phaseSeed) * Math.min(0.25, jiggleDist * 0.4);
         }
 
         const distToStar = camera.position.distanceTo(starSprite.position);
@@ -2291,6 +2398,18 @@ export function AiMemoryGalaxySection({
       s.yawVelocity = 0;
       s.pitchVelocity = 0;
       canvas.setPointerCapture(e.pointerId);
+
+      // Tactile Touch Impulse: Instant spring pop on star touch / pointer down
+      const rect = canvas.getBoundingClientRect();
+      mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+      mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+      raycaster.setFromCamera(mouse, camera);
+      const touchIntersects = raycaster.intersectObjects(proxyMeshes);
+      if (touchIntersects.length > 0) {
+        const hit = touchIntersects[0].object as THREE.Mesh;
+        const memoryItem = hit.userData.memory as MemoryNode;
+        triggerStarJiggle(memoryItem.id, 1.4);
+      }
     };
 
     const onPointerMove = (e: PointerEvent) => {
@@ -2341,6 +2460,8 @@ export function AiMemoryGalaxySection({
           pendingHoverNodeId = memoryItem.id;
           const clusterIdx = TOPIC_CLUSTERS.findIndex((c) => c.id === memoryItem.clusterId);
           spaceSoundscape.playNodePulse(clusterIdx !== -1 ? clusterIdx : 0, mouse.x, memoryItem.isAnchor);
+          // Tactile star jiggle on hover
+          triggerStarJiggle(memoryItem.id, 1.1);
         }
 
         setHoveredMemoryId(memoryItem.id);
@@ -2372,9 +2493,11 @@ export function AiMemoryGalaxySection({
       if (e.deltaY > 0) {
         // Infinite Zoom Out - completely unbounded
         s.targetRadius = s.targetRadius * zoomFactor;
+        triggerZoomJiggle(0.6);
       } else {
         // Infinite Zoom In - down to micro 0.04 scale
         s.targetRadius = Math.max(0.04, s.targetRadius / zoomFactor);
+        triggerZoomJiggle(1.1);
       }
     };
 
@@ -2392,6 +2515,7 @@ export function AiMemoryGalaxySection({
       if (intersects.length > 0) {
         const hitProxy = intersects[0].object as THREE.Mesh;
         const memoryItem = hitProxy.userData.memory as MemoryNode;
+        triggerStarJiggle(memoryItem.id, 1.6);
         handleSelectMemory(memoryItem.id);
         return;
       }
