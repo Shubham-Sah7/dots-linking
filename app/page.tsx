@@ -29,17 +29,16 @@ function MainDashboardContent() {
         onModeChange={setCurrentMode}
       />
 
-      {/* Active Dashboard View */}
-      {currentMode === 'galaxy' && (
-        <div className="w-full flex-1 flex items-center justify-center overflow-hidden">
-          <AiMemoryGalaxySection className="w-full h-full" />
-        </div>
-      )}
-      {currentMode === 'visualization' && (
+      {/* Active Dashboard View: AI Memory Galaxy (Main) */}
+      <div className="w-full flex-1 flex items-center justify-center overflow-hidden">
+        <AiMemoryGalaxySection className="w-full h-full" />
+      </div>
+
+      {/* {currentMode === 'visualization' && (
         <div className="w-full flex-1 flex items-center justify-center overflow-hidden">
           <AiMemoryVisualizationSection className="w-full h-full" />
         </div>
-      )}
+      )} */}
       {/* {currentMode === 'rescue'        && <RescueDashboardView />} */}
       {/* {currentMode === 'synap'         && <SynapMemoryView />} */}
       {/* {currentMode === 'jev'           && <JevDashboardView />} */}
@@ -53,14 +52,14 @@ function MainDashboardContent() {
           <AgentMemoryGraph className="w-full h-full" />
         </div>
       )} */}
-      {currentMode === 'hxlfed'        && (
+      {/* {currentMode === 'hxlfed'        && (
         <div className="w-full flex-1 flex items-center justify-center overflow-hidden">
           <HxlfedView
             className="w-full h-full"
             onNavigateToSynap={() => setCurrentMode('sphere')}
           />
         </div>
-      )}
+      )} */}
     </main>
   );
 }

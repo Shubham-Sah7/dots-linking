@@ -1365,7 +1365,7 @@ export function AiMemoryVisualizationSection({
                   setIsSearchOpen(true);
                 }}
                 onFocus={() => setIsSearchOpen(true)}
-                placeholder="Search memories... (/)"
+                placeholder="Search memories"
                 className="bg-transparent text-xs text-white placeholder-[#71717a] outline-none w-44 md:w-56 font-normal"
               />
               {searchQuery && (

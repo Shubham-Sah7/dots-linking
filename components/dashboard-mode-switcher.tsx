@@ -34,17 +34,14 @@ export function DashboardModeSwitcher({
           <span className="font-sans font-bold text-lg sm:text-xl tracking-tight text-white">
             Maximem
           </span>
-          <span className="px-2 py-0.5 rounded text-[10px] font-mono uppercase tracking-wider bg-[#222220] text-[#f26522] border border-[#f26522]/40 font-semibold">
-            PLATFORM
-          </span>
         </div>
       </div>
 
       {/* Mode Switcher Pill & Space Sound Controller */}
       <div className="flex items-center gap-2 sm:gap-3">
         <SpaceSoundToggle />
-        <div className="flex items-center bg-[#1a1a18] border border-white/[0.09] rounded-[5px] p-1 shadow-sm">
-          {/* Option: AI Memory Living Galaxy */}
+        {/* Mode Switcher Pill — Commented out: AI Memory Galaxy is the main default view */}
+        {/* <div className="flex items-center bg-[#1a1a18] border border-white/[0.09] rounded-[5px] p-1 shadow-sm">
           <button
             onClick={() => onModeChange('galaxy')}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[3px] text-xs font-sans transition-all duration-200 cursor-pointer ${
@@ -57,7 +54,6 @@ export function DashboardModeSwitcher({
             <span>AI Memory Galaxy</span>
           </button>
 
-          {/* Option: AI Memory Story (Original) */}
           <button
             onClick={() => onModeChange('visualization')}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[3px] text-xs font-sans transition-all duration-200 cursor-pointer ${
@@ -70,72 +66,6 @@ export function DashboardModeSwitcher({
             <span>AI Memory Story</span>
           </button>
 
-          {/* Option 1: Legacy Recovery */}
-          {/* <button
-            onClick={() => onModeChange('rescue')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[7px] text-xs font-sans transition-all duration-200 cursor-pointer ${
-              currentMode === 'rescue'
-                ? 'bg-[#f26522] text-white font-semibold shadow-[0px_2px_10px_rgba(242,101,34,0.3)]'
-                : 'text-[#a1a1aa] hover:text-white'
-            }`}
-          >
-            <Terminal size={13} />
-            <span>Legacy Recovery</span>
-          </button> */}
-
-          {/* Option 2: Memory Explorer */}
-          {/* <button
-            onClick={() => onModeChange('synap')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[7px] text-xs font-sans transition-all duration-200 cursor-pointer ${
-              currentMode === 'synap'
-                ? 'bg-[#f26522] text-white font-semibold shadow-[0px_2px_10px_rgba(242,101,34,0.3)]'
-                : 'text-[#a1a1aa] hover:text-white'
-            }`}
-          >
-            <Network size={13} />
-            <span>Memory Explorer</span>
-          </button> */}
-
-          {/* Option 3: AI Code Optimization */}
-          {/* <button
-            onClick={() => onModeChange('jev')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[7px] text-xs font-sans transition-all duration-200 cursor-pointer ${
-              currentMode === 'jev'
-                ? 'bg-[#f26522] text-white font-semibold shadow-[0px_2px_10px_rgba(242,101,34,0.3)]'
-                : 'text-[#a1a1aa] hover:text-white'
-            }`}
-          >
-            <GitPullRequest size={13} />
-            <span>AI Code Optimization</span>
-          </button> */}
-
-          {/* Option 4: Living Agent Memory Graph */}
-          {/* <button
-            onClick={() => onModeChange('sphere')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[7px] text-xs font-sans transition-all duration-200 cursor-pointer ${
-              currentMode === 'sphere'
-                ? 'bg-[#f26522] text-white font-semibold shadow-[0px_2px_10px_rgba(242,101,34,0.3)]'
-                : 'text-[#a1a1aa] hover:text-white'
-            }`}
-          >
-            <Globe size={13} />
-            <span>Agent Memory Graph</span>
-          </button> */}
-
-          {/* Option 5: Option 03 — Agent Memory Lifecycle */}
-          {/* <button
-            onClick={() => onModeChange('agent')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[7px] text-xs font-sans transition-all duration-200 cursor-pointer ${
-              currentMode === 'agent'
-                ? 'bg-[#f26522] text-white font-semibold shadow-[0px_2px_10px_rgba(242,101,34,0.3)]'
-                : 'text-[#a1a1aa] hover:text-white'
-            }`}
-          >
-            <Cpu size={13} />
-            <span>Agent Memory (Option 03)</span>
-          </button> */}
-
-          {/* Option 6: HXLFED Orbital AI Memory Graph */}
           <button
             onClick={() => onModeChange('hxlfed')}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[3px] text-xs font-sans transition-all duration-200 cursor-pointer ${
@@ -147,7 +77,7 @@ export function DashboardModeSwitcher({
             <Orbit size={13} className={currentMode === 'hxlfed' ? 'text-black' : 'text-[#e8c88a]'} />
             <span>Orbital AI Memory Graph</span>
           </button>
-        </div>
+        </div> */}
       </div>
     </header>
   );

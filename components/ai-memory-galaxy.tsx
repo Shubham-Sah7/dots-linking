@@ -557,6 +557,30 @@ export const GRAPH_EDGES: GraphEdge[] = [
 // 5. TEXTURE GENERATORS (HIGH PRECISION ASTRONOMICAL CORONAS & DIFFRACTION SPIKES)
 // ════════════════════════════════════════════════════════════════════════════
 
+function createMemoryNodeTexture(): THREE.CanvasTexture {
+  const size = 128;
+  const canvas = document.createElement("canvas");
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext("2d")!;
+  const c = size / 2;
+
+  // Refined natural stellar luminosity with soft chromatic falloff (calm, elegant, not overblown)
+  const grad = ctx.createRadialGradient(c, c, 0, c, c, size / 2);
+  grad.addColorStop(0.0, "rgba(255, 255, 255, 1.0)");
+  grad.addColorStop(0.12, "rgba(255, 255, 255, 0.92)");
+  grad.addColorStop(0.28, "rgba(255, 250, 245, 0.58)");
+  grad.addColorStop(0.55, "rgba(250, 240, 230, 0.16)");
+  grad.addColorStop(0.80, "rgba(235, 220, 205, 0.03)");
+  grad.addColorStop(1.0, "rgba(0, 0, 0, 0.0)");
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, size, size);
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.needsUpdate = true;
+  return texture;
+}
+
 function createStarTexture(): THREE.CanvasTexture {
   const size = 128;
   const canvas = document.createElement("canvas");
@@ -631,12 +655,13 @@ function createGalacticBulgeTexture(): THREE.CanvasTexture {
   const ctx = canvas.getContext("2d")!;
   const c = size / 2;
 
+  // Luminous pearl-white to Maximem brand orange core falloff
   const grad = ctx.createRadialGradient(c, c, 0, c, c, size / 2);
   grad.addColorStop(0.0, "rgba(255, 255, 255, 1.0)");
-  grad.addColorStop(0.08, "rgba(255, 248, 230, 0.95)");
-  grad.addColorStop(0.24, "rgba(255, 230, 180, 0.58)");
-  grad.addColorStop(0.48, "rgba(246, 190, 115, 0.18)");
-  grad.addColorStop(0.74, "rgba(225, 150, 75, 0.04)");
+  grad.addColorStop(0.08, "rgba(255, 248, 230, 0.96)");
+  grad.addColorStop(0.24, "rgba(255, 225, 170, 0.62)");
+  grad.addColorStop(0.48, "rgba(242, 101, 34, 0.22)"); // Maximem Brand Orange (#f26522)
+  grad.addColorStop(0.72, "rgba(200, 75, 18, 0.05)");
   grad.addColorStop(1.0, "rgba(0, 0, 0, 0.0)");
 
   ctx.fillStyle = grad;
@@ -688,10 +713,10 @@ export function AiMemoryGalaxySection({
   const cameraStateRef = useRef({
     yaw: 0.65,
     pitch: 0.52,
-    radius: 145,
+    radius: 160,
     targetYaw: 0.65,
     targetPitch: 0.52,
-    targetRadius: 145,
+    targetRadius: 160,
     minRadius: 0.04,     // Infinite micro zoom into star surfaces
     maxRadius: Infinity, // Completely unbounded infinite macro zoom out
 
@@ -713,15 +738,14 @@ export function AiMemoryGalaxySection({
   });
 
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
-  const triggerStarJiggleRef = useRef<((nodeId: string, intensity?: number) => void) | null>(null);
-  const triggerZoomJiggleRef = useRef<((intensity?: number) => void) | null>(null);
   const lastAltitudeUpdateMs = useRef<number>(0);
+  const lastUserInteractionTime = useRef<number>(0);
 
   // Stable references for 60-120fps render loop
   const isAutoRotatingRef = useRef(true);
   const driftSpeedRef = useRef<number>(1);
   const showFilamentsRef = useRef(true);
-  const lastReportedAltitude = useRef<number>(145);
+  const lastReportedAltitude = useRef<number>(160);
 
   useEffect(() => {
     isAutoRotatingRef.current = isAutoRotating;
@@ -820,7 +844,7 @@ export function AiMemoryGalaxySection({
 
     const s = cameraStateRef.current;
     s.targetLookAt.set(0, 0, 0);
-    s.targetRadius = 145;
+    s.targetRadius = 160;
     s.targetYaw = 0.65;
     s.targetPitch = 0.52;
     s.autoRotate = isAutoRotatingRef.current;
@@ -864,11 +888,6 @@ export function AiMemoryGalaxySection({
     const clusterIdx = TOPIC_CLUSTERS.findIndex((c) => c.id === target.clusterId);
     spaceSoundscape.playNodePulse(clusterIdx !== -1 ? clusterIdx : 0, screenX, target.isAnchor);
 
-    // Tactile star jiggle impulse on selection / touch
-    if (triggerStarJiggleRef.current) {
-      triggerStarJiggleRef.current(memoryId, 1.6);
-    }
-
     setSelectedMemoryId(memoryId);
     setSelectedClusterId(null);
     setIsSearchOpen(false);
@@ -907,21 +926,23 @@ export function AiMemoryGalaxySection({
   // Smooth Infinite Zoom In
   const handleZoomIn = useCallback(() => {
     const s = cameraStateRef.current;
-    s.targetRadius = Math.max(0.04, s.targetRadius * 0.65);
+    const currentLog = Math.log(Math.max(0.01, s.radius));
+    let targetLog = Math.log(Math.max(0.01, s.targetRadius));
+    if (currentLog - targetLog > 0.85) targetLog = currentLog - 0.85;
+    targetLog -= 0.45;
+    s.targetRadius = Math.max(0.04, Math.exp(targetLog));
     spaceSoundscape.playZoomSweep("in");
-    if (triggerZoomJiggleRef.current) {
-      triggerZoomJiggleRef.current(1.2);
-    }
   }, []);
 
   // Smooth Infinite Zoom Out (Unbounded)
   const handleZoomOut = useCallback(() => {
     const s = cameraStateRef.current;
-    s.targetRadius = s.targetRadius * 1.55;
+    const currentLog = Math.log(Math.max(0.01, s.radius));
+    let targetLog = Math.log(Math.max(0.01, s.targetRadius));
+    if (targetLog - currentLog > 0.85) targetLog = currentLog + 0.85;
+    targetLog += 0.45;
+    s.targetRadius = Math.max(0.04, Math.exp(targetLog));
     spaceSoundscape.playZoomSweep("out");
-    if (triggerZoomJiggleRef.current) {
-      triggerZoomJiggleRef.current(0.7);
-    }
   }, []);
 
   // Toggle Auto-Rotation
@@ -1019,6 +1040,7 @@ export function AiMemoryGalaxySection({
 
     // Shared Textures
     const starTexture = createStarTexture();
+    const nodeTexture = createMemoryNodeTexture();
     const spikeTexture = createDiffractionSpikeTexture();
     const coreBulgeTexture = createGalacticBulgeTexture();
 
@@ -1035,66 +1057,79 @@ export function AiMemoryGalaxySection({
       depthWrite: false,
     });
     const innerCoreSprite = new THREE.Sprite(innerCoreMat);
-    innerCoreSprite.scale.set(22, 22, 1);
+    innerCoreSprite.scale.set(24, 24, 1);
     coreGroup.add(innerCoreSprite);
 
-    // 2. Dense central bulge glow (warm cream & amber)
+    // 2. Dense central bulge glow (pearl-white with warm champagne rim)
     const coreMat = new THREE.SpriteMaterial({
       map: coreBulgeTexture,
-      color: 0xffeed0,
+      color: 0xfff5e6,
       transparent: true,
-      opacity: 0.95,
+      opacity: 0.94,
       blending: THREE.AdditiveBlending,
       depthWrite: false,
     });
     const coreSprite = new THREE.Sprite(coreMat);
-    coreSprite.scale.set(48, 48, 1);
+    coreSprite.scale.set(54, 54, 1);
     coreGroup.add(coreSprite);
 
-    // 3. Barred bulge elliptical glow (stretched along x-axis)
+    // 3. Barred bulge elliptical glow (stretched along galaxy bar orientation)
     const barMat = new THREE.SpriteMaterial({
       map: coreBulgeTexture,
       color: 0xf8cc84,
       transparent: true,
-      opacity: 0.60,
+      opacity: 0.62,
       blending: THREE.AdditiveBlending,
       depthWrite: false,
     });
     const barSprite = new THREE.Sprite(barMat);
-    barSprite.scale.set(88, 52, 1);
+    barSprite.scale.set(92, 46, 1);
     coreGroup.add(barSprite);
 
-    // 4. Wide atmospheric galactic halo (soft warm amber starlight)
+    // 4. Celestial polar light jet (warm diamond-gold vertical flare column)
+    const jetMat = new THREE.SpriteMaterial({
+      map: spikeTexture,
+      color: 0xffeed5,
+      transparent: true,
+      opacity: 0.35,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+    });
+    const jetSprite = new THREE.Sprite(jetMat);
+    jetSprite.scale.set(11, 130, 1);
+    coreGroup.add(jetSprite);
+
+    // 5. Atmospheric galactic halo (Maximem brand warm amber-orange starlight)
     const haloMat = new THREE.SpriteMaterial({
       map: coreBulgeTexture,
-      color: 0xf6be74,
+      color: 0xf59e0b,
       transparent: true,
-      opacity: 0.28,
+      opacity: 0.24,
       blending: THREE.AdditiveBlending,
       depthWrite: false,
     });
     const haloSprite = new THREE.Sprite(haloMat);
-    haloSprite.scale.set(135, 135, 1);
+    haloSprite.scale.set(155, 155, 1);
     coreGroup.add(haloSprite);
 
-    // 5. Vast outer diffuse milky haze
+    // 6. Outer diffuse cosmic haze (rich Maximem brand orange)
     const outerHazeMat = new THREE.SpriteMaterial({
       map: coreBulgeTexture,
-      color: 0xedb879,
+      color: 0xf26522,
       transparent: true,
-      opacity: 0.14,
+      opacity: 0.12,
       blending: THREE.AdditiveBlending,
       depthWrite: false,
     });
     const outerHazeSprite = new THREE.Sprite(outerHazeMat);
-    outerHazeSprite.scale.set(195, 195, 1);
+    outerHazeSprite.scale.set(230, 230, 1);
     coreGroup.add(outerHazeSprite);
 
     scene.add(coreGroup);
 
-    // ── B. AUTHENTIC MILKY WAY & DEEP COSMOS MULTI-GALAXY STELLAR POPULATION (106,000 PARTICLES) ──
+    // ── B. AUTHENTIC MILKY WAY & DEEP COSMOS MULTI-GALAXY STELLAR POPULATION (125,000 PARTICLES) ──
     // Milky Way (Barred Bulge + 4 Spiral Arms + Great Rift + Halo) + Andromeda (M31 + M32) + Triangulum (M33) + Magellanic Clouds + Hubble Deep Field
-    const totalParticles = 106000;
+    const totalParticles = 125000;
     const positions = new Float32Array(totalParticles * 3);
     const baseColors = new Float32Array(totalParticles * 3);
     const particleSizes = new Float32Array(totalParticles);
@@ -1102,21 +1137,29 @@ export function AiMemoryGalaxySection({
     const particlePhases = new Float32Array(totalParticles);
     const particleLayers = new Float32Array(totalParticles);
 
-    // Astronomical stellar population color palette
+    // Celestial Grand Design Spiral Palette (matching reference moodboard & Image 2)
+    const colMaximemOrange = new THREE.Color(0xf26522);
     const colNuclearWhite = new THREE.Color(0xffffff);
-    const colBrilliantCore = new THREE.Color(0xfff5e6);
-    const colWarmAmber = new THREE.Color(0xfde4b0);
+    const colBrilliantCore = new THREE.Color(0xfff8ee);
+    const colChampagneGold = new THREE.Color(0xffedd5);
+    const colWarmAmber = new THREE.Color(0xfde68a);
     const colGoldenCream = new THREE.Color(0xf7d399);
     const colWarmApricot = new THREE.Color(0xf5bb7d);
-    const colMaximemOrange = new THREE.Color(0xf26522);
-    const colSilverWhite = new THREE.Color(0xecf2f8);
-    const colDiamondBlue = new THREE.Color(0xcbe3ff);
+    const colSilverWhite = new THREE.Color(0xf8fafc);
+    const colDiamondBlue = new THREE.Color(0xe0f2fe);
     const colSoftBlue = new THREE.Color(0x9fc0e6);
     const colMidnightBlue = new THREE.Color(0x6a8eb8);
-    const colDustGlow = new THREE.Color(0x422013);
-    const colDustSepia = new THREE.Color(0x281510);
-    const colLavender = new THREE.Color(0xd8b4fe);
+    const colElectricCyan = new THREE.Color(0x38bdf8);
     const colCyanGlow = new THREE.Color(0x38bdf8);
+    const colSoftLavender = new THREE.Color(0xede9fe);
+    const colLavender = new THREE.Color(0xd8b4fe);
+    const colCosmicViolet = new THREE.Color(0xc4b5fd);
+    const colDeepIndigo = new THREE.Color(0x818cf8);
+    const colRoyalSapphire = new THREE.Color(0x6366f1);
+    const colDustGlow = new THREE.Color(0x281620);
+    const colDustSepia = new THREE.Color(0x181024);
+    const colMidnightDust = new THREE.Color(0x181024);
+    const colSepiaDust = new THREE.Color(0x281620);
     const colRedshiftAmber = new THREE.Color(0xfb923c);
 
     // Box-Muller normal distribution for realistic stellar density falloff
@@ -1128,8 +1171,6 @@ export function AiMemoryGalaxySection({
       return Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
     };
 
-    const armsCount = 4;
-    const spiralCurvature = 0.255;
     const barAngle = 0.42; // ~24 deg barred core tilt matching Milky Way morphology
     const cosB = Math.cos(barAngle);
     const sinB = Math.sin(barAngle);
@@ -1141,116 +1182,165 @@ export function AiMemoryGalaxySection({
       let speedFactor = 1.0;
 
       let layerId = 0.0;
-      if (i < 20000) layerId = 0.0;
-      else if (i < 58000) layerId = 1.0;
-      else if (i < 68000) layerId = 2.0;
-      else if (i < 73500) layerId = 3.0;
-      else if (i < 75000) layerId = 4.0;
-      else if (i < 91000) layerId = 5.0;
-      else if (i < 99000) layerId = 6.0;
-      else if (i < 103500) layerId = 7.0;
+      if (i < 24000) layerId = 0.0;
+      else if (i < 74000) layerId = 1.0;
+      else if (i < 86000) layerId = 2.0;
+      else if (i < 92500) layerId = 3.0;
+      else if (i < 94000) layerId = 4.0;
+      else if (i < 110000) layerId = 5.0;
+      else if (i < 118000) layerId = 6.0;
+      else if (i < 122800) layerId = 7.0;
       else layerId = 8.0;
 
-      if (i < 20000) {
-        // 1. DENSE BARRED BULGE & NUCLEAR CORE (20,000 stars)
-        // High core density + barred triaxial elongation along bar angle
-        const rT = Math.pow(Math.random(), 2.85);
-        const dist = rT * 22.0;
+      if (i < 24000) {
+        // 1. DENSE RADIANT BARRED BULGE & NUCLEAR NUCLEUS (24,000 stars)
+        // High core density with smooth exponential falloff & triaxial barred orientation
+        const rT = Math.pow(Math.random(), 2.8);
+        const dist = rT * 26.0;
         const theta = Math.random() * Math.PI * 2.0;
-        const phi = (Math.random() - 0.5) * Math.PI * 0.65;
+        const phi = (Math.random() - 0.5) * Math.PI * 0.85;
 
-        const x0 = Math.cos(theta) * Math.cos(phi) * dist * 1.68;
-        const y0 = Math.sin(phi) * dist * 0.42 + randn() * 0.32;
-        const z0 = Math.sin(theta) * Math.cos(phi) * dist * 0.74;
+        // Triaxial barred ellipsoid (elongated along bar angle)
+        const x0 = Math.cos(theta) * Math.cos(phi) * dist * 1.75;
+        const y0 = Math.sin(phi) * dist * 0.65 + randn() * 0.45;
+        const z0 = Math.sin(theta) * Math.cos(phi) * dist * 0.95;
 
-        // Rotate along Milky Way bar orientation
         p.x = x0 * cosB - z0 * sinB;
         p.y = y0;
         p.z = x0 * sinB + z0 * cosB;
 
-        if (dist < 4.2) {
-          col = Math.random() > 0.4 ? colNuclearWhite : colBrilliantCore;
-          size = 1.8 + Math.random() * 1.4;
-        } else if (dist < 9.5) {
+        if (dist < 4.5) {
+          col = Math.random() > 0.35 ? colNuclearWhite : colBrilliantCore;
+          size = 2.2 + Math.random() * 1.5;
+        } else if (dist < 11.5) {
           const r = Math.random();
-          col = r > 0.55 ? colWarmAmber : r > 0.22 ? colGoldenCream : colNuclearWhite;
-          size = 1.45 + Math.random() * 0.9;
-        } else if (dist < 16.5) {
+          col = r > 0.45 ? colBrilliantCore : r > 0.20 ? colChampagneGold : colNuclearWhite;
+          size = 1.6 + Math.random() * 1.0;
+        } else if (dist < 19.5) {
           const r = Math.random();
-          col = r > 0.52 ? colGoldenCream : r > 0.25 ? colWarmApricot : colSilverWhite;
-          size = 1.15 + Math.random() * 0.7;
+          col = r > 0.50 ? colChampagneGold : r > 0.22 ? colWarmAmber : colGoldenCream;
+          size = 1.35 + Math.random() * 0.75;
         } else {
-          col = Math.random() > 0.5 ? colWarmAmber : colSilverWhite;
-          size = 0.95 + Math.random() * 0.6;
+          col = Math.random() > 0.45 ? colWarmApricot : colMaximemOrange;
+          size = 1.15 + Math.random() * 0.65;
         }
-        speedFactor = 1.45;
-      } else if (i < 58000) {
-        // 2. 4 MAJOR LOGARITHMIC SPIRAL ARMS + ORION SPURS (38,000 stars)
-        const armIndex = i % armsCount;
-        let armAngleOffset = (armIndex * 2.0 * Math.PI) / armsCount;
+        speedFactor = 1.35;
+      } else if (i < 74000) {
+        // 2. GRAND-DESIGN LOGARITHMIC SPIRAL ARMS (50,000 stars)
+        // 2 Dominant Primary Arms (74% of stars) + 2 Secondary Branches (26% of stars)
+        const idx = i - 24000;
+        const isPrimary = (idx % 100) < 74;
 
-        // 16% secondary spurs (Orion-Cygnus & Carina inter-arm branches)
-        const isSpur = Math.random() < 0.16;
-        if (isSpur) {
-          armAngleOffset += Math.random() > 0.5 ? 0.36 : -0.36;
-        }
+        let armAngleOffset = 0;
+        let startRadius = 8.5;
+        let endRadius = 140.0;
 
-        const rT = Math.pow(Math.random(), 1.35);
-        const radius = isSpur ? 18.0 + rT * 48.0 : 9.5 + rT * 78.5;
-        const spiralAngle = armAngleOffset + Math.log(radius / 9.0) / spiralCurvature;
-
-        const armSpread = (1.05 + radius * 0.13) * (0.65 + Math.random() * 0.45);
-        p.x = Math.cos(spiralAngle) * radius + randn() * armSpread;
-        p.y = randn() * (0.85 + radius * 0.036) * (Math.random() * 0.8 + 0.2);
-        p.z = Math.sin(spiralAngle) * radius + randn() * armSpread;
-
-        // Clustered star-forming OB associations (brilliant knots along spiral arms)
-        if (i % 19 === 0) {
-          col = Math.random() > 0.4 ? colNuclearWhite : colDiamondBlue;
-          size = 2.1 + Math.random() * 1.1;
-        } else if (radius < 24.0) {
-          col = Math.random() > 0.42 ? colWarmAmber : colSilverWhite;
-          size = 1.25 + Math.random() * 0.7;
-        } else if (radius < 52.0) {
-          const r = Math.random();
-          col = r > 0.5 ? colDiamondBlue : r > 0.25 ? colSilverWhite : (r > 0.08 ? colSoftBlue : colMaximemOrange);
-          size = 1.1 + Math.random() * 0.65;
+        if (isPrimary) {
+          // 2 Grand Primary Arms winding symmetrically from ends of the core bar
+          const primaryIndex = idx % 2;
+          armAngleOffset = primaryIndex * Math.PI;
+          startRadius = 8.5;
+          endRadius = 140.0;
         } else {
-          const r = Math.random();
-          col = r > 0.48 ? colDiamondBlue : r > 0.22 ? colSoftBlue : colMidnightBlue;
-          size = 0.95 + Math.random() * 0.55;
+          // 2 Secondary Tributary Arms branching at mid-radius
+          const secondaryIndex = (idx % 4 < 2) ? 0 : 1;
+          armAngleOffset = secondaryIndex * Math.PI + Math.PI * 0.5;
+          startRadius = 22.0;
+          endRadius = 125.0;
         }
-        speedFactor = Math.sqrt(28.0 / Math.max(radius, 9.5));
-      } else if (i < 68000) {
-        // 3. THE GREAT RIFT & DARK DUST ABSORPTION LANES (10,000 dust particles)
-        // Silhouetted along inner edge of spiral arms
-        const armIndex = i % armsCount;
-        const armAngleOffset = (armIndex * 2.0 * Math.PI) / armsCount - 0.18;
+
+        // Concentrated radial distribution with smooth outwards density taper
         const rT = Math.pow(Math.random(), 1.25);
-        const radius = 12.0 + rT * 62.0;
-        const spiralAngle = armAngleOffset + Math.log(radius / 11.0) / spiralCurvature;
+        const radius = startRadius + rT * (endRadius - startRadius);
 
-        p.x = Math.cos(spiralAngle) * radius + randn() * 1.5;
-        p.y = randn() * 0.65;
-        p.z = Math.sin(spiralAngle) * radius + randn() * 1.5;
+        // Pitch parameter b = 0.295 gives ~1.5 full graceful revolutions (exact match to Image 2)
+        const pitchB = 0.295;
+        const spiralAngle = armAngleOffset + Math.log(radius / startRadius) / pitchB;
 
-        col = Math.random() > 0.35 ? colDustGlow : colDustSepia;
+        // Direction perpendicular to the spiral arm tangent
+        const pitchAngle = Math.atan(pitchB);
+        const nx = -Math.sin(spiralAngle + pitchAngle);
+        const nz = Math.cos(spiralAngle + pitchAngle);
+
+        // Tangential arm dispersion: 78% dense arm spine + 22% delicate fringe
+        const isSpine = Math.random() < 0.78;
+        const width = isSpine
+          ? (0.60 + Math.pow(radius / 135.0, 1.2) * 3.0)
+          : (1.4 + Math.pow(radius / 135.0, 1.0) * 6.2);
+        const distAcross = randn() * width;
+
+        p.x = Math.cos(spiralAngle) * radius + nx * distAcross;
+        p.z = Math.sin(spiralAngle) * radius + nz * distAcross;
+
+        // Sleek 3D disk thickness & outer S-warp (maintains high-definition arms at 30° pitch)
+        const warp = Math.sin(spiralAngle * 0.92 - 0.3) * Math.pow(Math.max(0.0, radius - 40.0) / 95.0, 2.0) * 3.2;
+        const diskThickness = 0.45 + Math.pow(radius / 135.0, 1.25) * 1.6;
+        p.y = randn() * diskThickness + warp;
+
+        // Luminous Maximem Brand Orange (#f26522) & Golden Amber celestial color zoning
+        if (idx % 18 === 0) {
+          // Brilliant OB Star Association Knots (diamond starlight)
+          col = Math.random() > 0.45 ? colNuclearWhite : colDiamondBlue;
+          size = 2.4 + Math.random() * 1.3;
+        } else if (radius < 32.0) {
+          // Inner Arm: Warm Amber & Golden Cream
+          const r = Math.random();
+          col = r > 0.52 ? colWarmAmber : r > 0.25 ? colGoldenCream : colSilverWhite;
+          size = 1.45 + Math.random() * 0.8;
+        } else if (radius < 82.0) {
+          // Mid Arm: Maximem Brand Orange (#f26522) & Warm Apricot
+          const r = Math.random();
+          col = r > 0.48 ? colMaximemOrange : r > 0.24 ? colWarmApricot : (r > 0.10 ? colGoldenCream : colSilverWhite);
+          size = 1.28 + Math.random() * 0.7;
+        } else {
+          // Outer Arm: Maximem Brand Orange, Warm Amber & Starlight
+          const r = Math.random();
+          col = r > 0.46 ? colMaximemOrange : r > 0.24 ? colWarmAmber : (r > 0.10 ? colWarmApricot : colSilverWhite);
+          size = 1.12 + Math.random() * 0.6;
+        }
+        speedFactor = Math.sqrt(36.0 / Math.max(radius, 12.0));
+      } else if (i < 86000) {
+        // 3. THE GREAT RIFT & DARK DUST ABSORPTION LANES (12,000 dust particles)
+        // Silhouetted tightly along the inner concave edge of the spiral arms
+        const idx = i - 74000;
+        const armIndex = idx % 2;
+        const armAngleOffset = armIndex * Math.PI - 0.14; // inner edge offset
+
+        const rT = Math.pow(Math.random(), 1.2);
+        const radius = 12.0 + rT * 105.0;
+
+        const pitchB = 0.295;
+        const spiralAngle = armAngleOffset + Math.log(radius / 8.5) / pitchB;
+
+        const pitchAngle = Math.atan(pitchB);
+        const nx = -Math.sin(spiralAngle + pitchAngle);
+        const nz = Math.cos(spiralAngle + pitchAngle);
+        const dustWidth = 0.55 + Math.pow(radius / 110.0, 1.1) * 2.5;
+        const distAcross = randn() * dustWidth;
+
+        const warp = Math.sin(spiralAngle * 0.92 - 0.3) * Math.pow(Math.max(0.0, radius - 40.0) / 95.0, 2.0) * 2.6;
+        p.x = Math.cos(spiralAngle) * radius + nx * distAcross;
+        p.y = randn() * (0.35 + radius * 0.015) + warp;
+        p.z = Math.sin(spiralAngle) * radius + nz * distAcross;
+
+        col = Math.random() > 0.4 ? colDustGlow : colDustSepia;
         size = 2.2 + Math.random() * 1.2;
-        speedFactor = Math.sqrt(28.0 / Math.max(radius, 10.0));
-      } else if (i < 73500) {
-        // 4. OUTER FLARED DISK & STELLAR HALO (5,500 stars)
+        speedFactor = Math.sqrt(36.0 / Math.max(radius, 13.0));
+      } else if (i < 92500) {
+        // 4. OUTER FLARED DISK & VOLUMETRIC STELLAR HALO (6,500 stars)
+        // Expansive spherical-oblate 3D halo giving deep foreground/background parallax
         const theta = Math.random() * Math.PI * 2.0;
         const rT = Math.pow(Math.random(), 1.4);
-        const radius = 22.0 + rT * 84.0;
+        const radius = 24.0 + rT * 155.0;
 
-        p.x = Math.cos(theta) * radius + randn() * 3.4;
-        p.y = randn() * (1.6 + radius * 0.075);
-        p.z = Math.sin(theta) * radius + randn() * 3.4;
+        p.x = Math.cos(theta) * radius + randn() * 3.5;
+        p.y = randn() * (1.2 + radius * 0.045);
+        p.z = Math.sin(theta) * radius + randn() * 3.5;
 
-        col = Math.random() > 0.5 ? colSilverWhite : colSoftBlue;
-        size = 0.9 + Math.random() * 0.55;
-        speedFactor = Math.sqrt(28.0 / Math.max(radius, 14.0));
-      } else if (i < 75000) {
+        col = Math.random() > 0.5 ? colSilverWhite : colWarmApricot;
+        size = 1.1 + Math.random() * 0.65;
+        speedFactor = Math.sqrt(36.0 / Math.max(radius, 18.0));
+      } else if (i < 94000) {
         // 5. DEEP COSMIC FIELD STARS (1,500 stars)
         const theta = Math.random() * Math.PI * 2.0;
         const phi = (Math.random() - 0.5) * Math.PI;
@@ -1262,13 +1352,13 @@ export function AiMemoryGalaxySection({
           Math.sin(theta) * Math.cos(phi) * dist
         );
         col = Math.random() > 0.6 ? colSilverWhite : colDiamondBlue;
-        size = 0.85 + Math.random() * 0.5;
+        size = 0.9 + Math.random() * 0.5;
         speedFactor = 0.0;
-      } else if (i < 91000) {
+      } else if (i < 110000) {
         // 6. ANDROMEDA GALAXY (M31) & M32 DWARF COMPANION (16,000 STARS)
         // Positioned at (-360, 130, -410) with 77° inclination tilt
         const m31Center = new THREE.Vector3(-360, 130, -410);
-        const idx = i - 75000;
+        const idx = i - 94000;
         let lx = 0;
         let ly = 0;
         let lz = 0;
@@ -1346,11 +1436,11 @@ export function AiMemoryGalaxySection({
         p.y = m31Center.y + (ry * cosInc - rz * sinInc);
         p.z = m31Center.z + (ry * sinInc + rz * cosInc);
         speedFactor = 0.0;
-      } else if (i < 99000) {
+      } else if (i < 118000) {
         // 7. TRIANGULUM GALAXY (M33) - 8,000 STARS
         // Face-on flocculent starburst spiral at (310, -95, -340)
         const m33Center = new THREE.Vector3(310, -95, -340);
-        const idx = i - 91000;
+        const idx = i - 110000;
         let lx = 0;
         let ly = 0;
         let lz = 0;
@@ -1394,9 +1484,9 @@ export function AiMemoryGalaxySection({
         p.y = m33Center.y + (ly * cosM33 - lz * sinM33);
         p.z = m33Center.z + (ly * sinM33 + lz * cosM33);
         speedFactor = 0.0;
-      } else if (i < 103800) {
+      } else if (i < 122800) {
         // 8. LARGE & SMALL MAGELLANIC CLOUDS (LMC & SMC) - 4,800 STARS
-        const idx = i - 99000;
+        const idx = i - 118000;
         if (idx < 3400) {
           // Large Magellanic Cloud (LMC) centered at (-85, -155, 175)
           const lmcCenter = new THREE.Vector3(-85, -155, 175);
@@ -1440,7 +1530,7 @@ export function AiMemoryGalaxySection({
       } else {
         // 9. HUBBLE DEEP FIELD GALAXIES (2,200 stars forming 14 distant galactic knots)
         // Discovery Channel deep field view across 750 to 2400 AU
-        const idx = i - 103800;
+        const idx = i - 122800;
         const knotIndex = idx % 14;
         const seedAngle = knotIndex * 2.39996;
         const knotDist = 850.0 + (knotIndex % 6) * 260.0;
@@ -1530,11 +1620,9 @@ export function AiMemoryGalaxySection({
             // Milky Way Galaxy (Core, Arms, Dust, Disk)
             float radius = length(pos.xz);
 
-            // Lin-Shu density wave pattern speed + gentle differential Keplerian shear
-            // Smooth coherent rotation: 0.0035 rad/sec keeps arms permanently intact
+            // Coherent density wave pattern rotation (0.0035 rad/sec) keeps all spiral arms permanently in pattern
             float patternSpeed = 0.0035;
-            float differential = 0.0022 * (10.0 / max(radius, 5.0));
-            float angle = uTime * (patternSpeed + differential * speedFactor);
+            float angle = uTime * patternSpeed;
             float cosA = cos(angle);
             float sinA = sin(angle);
 
@@ -1543,84 +1631,51 @@ export function AiMemoryGalaxySection({
             pos.x = rx;
             pos.z = rz;
 
-            // Organic vertical wave breathing across the galactic plane
-            float wavePhase = radius * 0.055 - uTime * 0.28 + aPhase;
-            pos.y += sin(wavePhase) * (0.12 + 0.006 * radius);
-
-            // Dust lane billow & volumetric misty depth (Layer 2)
-            if (aLayer > 1.5 && aLayer < 2.5) {
-              pos.x += sin(uTime * 0.4 + aPhase * 2.0) * 0.16;
-              pos.y += sin(uTime * 0.22 + aPhase * 3.0) * 0.08;
-              pos.z += cos(uTime * 0.35 + aPhase * 2.0) * 0.16;
-            }
-
-            // Core Accretion Inward Stream (radii < 8.5 AU gently orbiting & flowing toward singularity)
-            if (radius < 8.5 && radius > 0.35) {
-              float coreFlow = sin(uTime * 0.55 + aPhase * 3.0) * 0.05;
-              pos.xz += normalize(pos.xz) * coreFlow;
-
-              // Keplerian orbital acceleration near central nucleus
-              float tangentialBoost = (8.5 - radius) * 0.0022;
-              float tAngle = uTime * tangentialBoost;
-              float cT = cos(tAngle);
-              float sT = sin(tAngle);
-              float cx = pos.x * cT - pos.z * sT;
-              float cz = pos.x * sT + pos.z * cT;
-              pos.x = cx;
-              pos.z = cz;
-            }
+            // Harmonious, coherent cosmic relief wave across the galactic plane (coherent, not chaotic noise)
+            float theta = atan(rz, rx);
+            float wavePhase = radius * 0.032 - theta * 2.0 - uTime * 0.08;
+            pos.y += sin(wavePhase) * 0.22;
           } else if (aLayer > 4.5 && aLayer < 5.5) {
             // Andromeda (M31) Internal Galactic Spiral Rotation around (-360, 130, -410)
             vec3 m31Center = vec3(-360.0, 130.0, -410.0);
             vec3 localP = pos - m31Center;
-            float m31Angle = uTime * 0.0038;
+            float m31Angle = uTime * 0.0035;
             float cosM = cos(m31Angle);
             float sinM = sin(m31Angle);
             float lx = localP.x * cosM - localP.z * sinM;
             float lz = localP.x * sinM + localP.z * cosM;
-            pos = m31Center + vec3(lx, localP.y + sin(uTime * 0.25 + aPhase) * 0.12, lz);
+            pos = m31Center + vec3(lx, localP.y, lz);
           } else if (aLayer > 5.5 && aLayer < 6.5) {
             // Triangulum (M33) Internal Galactic Spiral Rotation around (290, -110, -380)
             vec3 m33Center = vec3(290.0, -110.0, -380.0);
             vec3 localP = pos - m33Center;
-            float m33Angle = -uTime * 0.0045;
+            float m33Angle = -uTime * 0.0042;
             float cosT = cos(m33Angle);
             float sinT = sin(m33Angle);
             float lx = localP.x * cosT - localP.z * sinT;
             float lz = localP.x * sinT + localP.z * cosT;
-            pos = m33Center + vec3(lx, localP.y + cos(uTime * 0.3 + aPhase) * 0.1, lz);
+            pos = m33Center + vec3(lx, localP.y, lz);
           } else if (aLayer < 4.5) {
             // Distant background cosmic field stars: gentle floating micro-drift
-            pos.y += sin(uTime * 0.15 + aPhase) * 0.22;
+            pos.y += sin(uTime * 0.12 + aPhase) * 0.14;
           }
 
-          // ── 2. PROXIMITY ILLUMINATION ──
-          float distToHover = length(pos - uHoveredPos);
-          float orangeVal = 0.0;
-          if (distToHover < 14.0) {
-            orangeVal = (1.0 - distToHover / 14.0) * 0.75;
-          }
-          vOrange = clamp(orangeVal, 0.0, 1.0);
-
-          // ── 3. CAMERA PROJECTION & CRISP STELLAR POINT SCALING ──
+          // ── 2. CAMERA PROJECTION & CRISP STELLAR POINT SCALING ──
           vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
           gl_Position = projectionMatrix * mvPosition;
 
           float dist = max(-mvPosition.z, 0.05);
           float pSize = particleSize;
-          if (vOrange > 0.1) pSize *= 1.4;
 
-          // Randomized Astronomical Stellar Twinkling
-          float twinkleFreq = 0.85 + fract(aPhase * 19.37) * 1.6;
-          float twinkle = 0.88 + 0.12 * sin(uTime * twinkleFreq + aPhase * 6.28);
-          vShimmer = 0.92 + 0.08 * sin(uTime * (twinkleFreq * 0.9) + aPhase * 3.14);
+          // Gentle Astronomical Stellar Twinkling (brightness shimmer, not jerky size bounce)
+          vShimmer = 0.94 + 0.06 * sin(uTime * 1.1 + aPhase * 3.14);
 
           // Crisp diamond star scaling curve — eliminates blurred blobs on close approach
-          float pScale = 280.0 / max(dist, 1.8);
+          float pScale = 315.0 / max(dist, 1.8);
           if (dist < 25.0) {
-            pScale = (280.0 / 25.0) * pow(25.0 / max(dist, 0.4), 0.38);
+            pScale = (315.0 / 25.0) * pow(25.0 / max(dist, 0.4), 0.38);
           }
-          gl_PointSize = clamp(pSize * pScale * twinkle, 0.65, 17.5);
+          gl_PointSize = clamp(pSize * pScale, 0.75, 18.5);
 
           // Near-plane soft clip fade
           float nearClipFade = smoothstep(0.04, 0.28, dist);
@@ -1634,15 +1689,13 @@ export function AiMemoryGalaxySection({
 
         varying vec3 vColor;
         varying float vAlpha;
-        varying float vOrange;
         varying float vShimmer;
 
         void main() {
           vec4 texColor = texture2D(uStarTexture, gl_PointCoord);
           if (texColor.a < 0.015) discard;
 
-          vec3 finalColor = mix(vColor, uOrangeColor, vOrange);
-          finalColor += vec3(pow(texColor.r, 2.2) * 0.38);
+          vec3 finalColor = vColor + vec3(pow(texColor.r, 2.0) * 0.42);
 
           float finalAlpha = texColor.a * vAlpha * vShimmer;
           finalAlpha = mix(finalAlpha, finalAlpha * 0.28, uDimming);
@@ -1661,60 +1714,76 @@ export function AiMemoryGalaxySection({
     // ── C. REAL MEMORY STAR NODES (INTERACTIVE STARS) ──
     const nodeMeshes: {
       starSprite: THREE.Sprite;
-      spikeSprite?: THREE.Sprite;
+      coreSprite: THREE.Sprite;
+      spikeSprite: THREE.Sprite;
       proxyMesh: THREE.Mesh;
       item: MemoryNode;
       radius0: number;
       theta0: number;
       y0: number;
-      jiggleOffset: THREE.Vector3;
-      jiggleVelocity: THREE.Vector3;
       phaseSeed: number;
     }[] = [];
 
     const starsGroup = new THREE.Group();
     const proxyGroup = new THREE.Group();
 
-    const proxyGeo = new THREE.SphereGeometry(3.8, 8, 8);
+    const proxyGeo = new THREE.SphereGeometry(4.8, 8, 8);
     const proxyMat = new THREE.MeshBasicMaterial({ visible: false });
 
     DEMO_MEMORIES.forEach((item) => {
       const cluster = TOPIC_CLUSTERS.find((c) => c.id === item.clusterId);
       const starCol = cluster ? cluster.colorThree : new THREE.Color(0xffffff);
 
+      // 1. Chromatic Corona Glare (Cluster Color with Airy ring)
       const sMat = new THREE.SpriteMaterial({
-        map: starTexture,
+        map: nodeTexture,
         color: starCol,
         transparent: true,
-        opacity: 0.92,
+        opacity: 0.95,
         blending: THREE.AdditiveBlending,
         depthWrite: false,
       });
       const starSprite = new THREE.Sprite(sMat);
       starSprite.position.copy(item.anchor);
-      const starScale = item.isAnchor ? 7.5 : 4.8;
+      const starScale = item.isAnchor ? 6.4 : 4.4;
       starSprite.scale.set(starScale, starScale, 1);
       starsGroup.add(starSprite);
 
-      let spikeSprite: THREE.Sprite | undefined;
-      if (item.isAnchor) {
-        const spikeMat = new THREE.SpriteMaterial({
-          map: spikeTexture,
-          color: 0xfff3d6,
-          transparent: true,
-          opacity: 0.88,
-          blending: THREE.AdditiveBlending,
-          depthWrite: false,
-        });
-        spikeSprite = new THREE.Sprite(spikeMat);
-        spikeSprite.position.copy(item.anchor);
-        spikeSprite.scale.set(15, 15, 1);
-        starsGroup.add(spikeSprite);
-      }
+      // 2. Optical Diamond Core Point (subtle pinprick glint for landmark anchors only)
+      const coreMat = new THREE.SpriteMaterial({
+        map: starTexture,
+        color: 0xffffff,
+        transparent: true,
+        opacity: item.isAnchor ? 0.70 : 0.0,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+      });
+      const coreSprite = new THREE.Sprite(coreMat);
+      coreSprite.position.copy(item.anchor);
+      coreSprite.visible = Boolean(item.isAnchor);
+      const coreScale = starScale * 0.30;
+      coreSprite.scale.set(coreScale, coreScale, 1);
+      starsGroup.add(coreSprite);
+
+      // 3. Celestial Diffraction Spike (only for landmark anchor nodes, keeping normal stars clean)
+      const spikeMat = new THREE.SpriteMaterial({
+        map: spikeTexture,
+        color: 0xfff4db,
+        transparent: true,
+        opacity: item.isAnchor ? 0.65 : 0.0,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+      });
+      const spikeSprite = new THREE.Sprite(spikeMat);
+      spikeSprite.position.copy(item.anchor);
+      spikeSprite.visible = Boolean(item.isAnchor);
+      const spikeScale = item.isAnchor ? 11.5 : 0;
+      spikeSprite.scale.set(spikeScale, spikeScale, 1);
+      starsGroup.add(spikeSprite);
 
       const proxyMesh = new THREE.Mesh(proxyGeo, proxyMat);
       proxyMesh.position.copy(item.anchor);
-      proxyMesh.userData = { memory: item, starSprite, spikeSprite };
+      proxyMesh.userData = { memory: item, starSprite, coreSprite, spikeSprite };
       proxyGroup.add(proxyMesh);
 
       const r0 = Math.hypot(item.anchor.x, item.anchor.z);
@@ -1722,67 +1791,18 @@ export function AiMemoryGalaxySection({
 
       nodeMeshes.push({
         starSprite,
+        coreSprite,
         spikeSprite,
         proxyMesh,
         item,
         radius0: r0,
         theta0: th0,
         y0: item.anchor.y,
-        jiggleOffset: new THREE.Vector3(0, 0, 0),
-        jiggleVelocity: new THREE.Vector3(0, 0, 0),
         phaseSeed: Math.random() * Math.PI * 2,
       });
     });
 
     const proxyMeshes = nodeMeshes.map((m) => m.proxyMesh);
-
-    // Tactile Star Spring Jiggle on Touch & Zoom
-    const triggerStarJiggle = (nodeId: string, intensity: number = 1.0) => {
-      const idx = nodeMeshes.findIndex((m) => m.item.id === nodeId);
-      if (idx === -1) return;
-      const targetNode = nodeMeshes[idx];
-
-      const angle = Math.random() * Math.PI * 2;
-      const kick = 0.65 * intensity;
-      targetNode.jiggleVelocity.x += Math.cos(angle) * kick;
-      targetNode.jiggleVelocity.y += (Math.random() - 0.5) * kick * 0.9;
-      targetNode.jiggleVelocity.z += Math.sin(angle) * kick;
-
-      // Cosmic filament ripple: sympathetic vibration on connected neighbor stars
-      GRAPH_EDGES.forEach((edge) => {
-        let neighborId: string | null = null;
-        if (edge.sourceId === nodeId) neighborId = edge.targetId;
-        else if (edge.targetId === nodeId) neighborId = edge.sourceId;
-
-        if (neighborId) {
-          const nNode = nodeMeshes.find((m) => m.item.id === neighborId);
-          if (nNode) {
-            const nAngle = Math.random() * Math.PI * 2;
-            const nKick = 0.22 * intensity;
-            nNode.jiggleVelocity.x += Math.cos(nAngle) * nKick;
-            nNode.jiggleVelocity.y += (Math.random() - 0.5) * nKick * 0.7;
-            nNode.jiggleVelocity.z += Math.sin(nAngle) * nKick;
-          }
-        }
-      });
-    };
-
-    const triggerZoomJiggle = (intensity: number = 1.0) => {
-      nodeMeshes.forEach((m) => {
-        const dist = camera.position.distanceTo(m.starSprite.position);
-        if (dist < 130) {
-          const proximity = THREE.MathUtils.clamp((130 - dist) / 130, 0, 1);
-          const fAngle = Math.random() * Math.PI * 2;
-          const fAmt = 0.25 * intensity * proximity;
-          m.jiggleVelocity.x += Math.cos(fAngle) * fAmt;
-          m.jiggleVelocity.y += (Math.random() - 0.5) * fAmt * 0.8;
-          m.jiggleVelocity.z += Math.sin(fAngle) * fAmt;
-        }
-      });
-    };
-
-    triggerStarJiggleRef.current = triggerStarJiggle;
-    triggerZoomJiggleRef.current = triggerZoomJiggle;
 
     scene.add(starsGroup);
     scene.add(proxyGroup);
@@ -1924,6 +1944,7 @@ export function AiMemoryGalaxySection({
     // Raycaster & Projections
     const raycaster = new THREE.Raycaster();
     const mouse = new THREE.Vector2(-1000, -1000);
+    const cursorVec2 = new THREE.Vector2();
     const tempVec = new THREE.Vector3();
     const tempChord = new THREE.Vector3();
     const tempTangent = new THREE.Vector3();
@@ -1998,43 +2019,36 @@ export function AiMemoryGalaxySection({
         const corePulseLuminosity = 0.94 + Math.sin(time * 0.68) * 0.06;
 
         // Inner core resolves into a tight, crisp stellar singularity when flying inside
-        const innerCoreScale = Math.min(22.0, Math.max(0.2, distToCore * 0.18)) * zoomCoreScale;
+        const innerCoreScale = Math.min(30.0, Math.max(0.2, distToCore * 0.22)) * zoomCoreScale;
         innerCoreSprite.scale.set(
           innerCoreScale * (1.0 + Math.sin(time * 1.1) * 0.03),
           innerCoreScale * (1.0 + Math.sin(time * 1.1) * 0.03),
           1
         );
-        innerCoreMat.opacity = Math.min(1.0, THREE.MathUtils.smoothstep(distToCore, 0.4, 18.0) * 0.92 + 0.06) * corePulseLuminosity * zoomCoreFade;
+        innerCoreMat.opacity = Math.min(1.0, THREE.MathUtils.smoothstep(distToCore, 0.4, 22.0) * 0.92 + 0.06) * corePulseLuminosity * zoomCoreFade;
 
-        coreSprite.scale.set(48 * compositeBreath, 48 * compositeBreath, 1);
+        coreSprite.scale.set(70 * compositeBreath, 70 * compositeBreath, 1);
         coreMat.opacity = 0.92 * coreAlpha * corePulseLuminosity * zoomCoreFade;
 
-        // Bar rotates with the galactic bar orientation
-        barSprite.material.rotation = -galaxyAngle * 1.15;
-        barSprite.scale.set(88 * compositeBreath, 50 * (1.0 + Math.cos(time * 0.72) * 0.03) * zoomCoreScale, 1);
+        // Bar rotates in exact synchronization with the galactic pattern
+        barSprite.material.rotation = -galaxyAngle;
+        barSprite.scale.set(128 * compositeBreath, 72 * (1.0 + Math.cos(time * 0.72) * 0.03) * zoomCoreScale, 1);
         barMat.opacity = 0.60 * barAlpha * (0.95 + breathA) * zoomCoreFade;
 
-        haloSprite.scale.set(135 * compositeBreath, 135 * compositeBreath, 1);
+        haloSprite.scale.set(195 * compositeBreath, 195 * compositeBreath, 1);
         haloMat.opacity = 0.28 * haloAlpha * zoomCoreFade;
 
-        outerHazeSprite.scale.set(195 * (1.0 + Math.sin(time * 0.35) * 0.025) * zoomCoreScale, 195 * (1.0 + Math.sin(time * 0.35) * 0.025) * zoomCoreScale, 1);
+        outerHazeSprite.scale.set(285 * (1.0 + Math.sin(time * 0.35) * 0.025) * zoomCoreScale, 285 * (1.0 + Math.sin(time * 0.35) * 0.025) * zoomCoreScale, 1);
         outerHazeMat.opacity = 0.14 * hazeAlpha * zoomCoreFade;
       }
 
-      // Subtle mouse parallax depth during navigation
-      if (!s.isDragging) {
-        const targetParallaxYaw = mouse.x * 0.025;
-        const targetParallaxPitch = mouse.y * 0.018;
-        const pDamp = 1.0 - Math.exp(-delta * 3.5);
-        s.parallaxYaw = THREE.MathUtils.lerp(s.parallaxYaw, targetParallaxYaw, pDamp);
-        s.parallaxPitch = THREE.MathUtils.lerp(s.parallaxPitch, targetParallaxPitch, pDamp);
-      } else {
-        s.parallaxYaw = THREE.MathUtils.lerp(s.parallaxYaw, 0, 0.1);
-        s.parallaxPitch = THREE.MathUtils.lerp(s.parallaxPitch, 0, 0.1);
-      }
+      // Keep camera completely steady during hover / navigation (no jerky mouse parallax)
+      s.parallaxYaw = 0;
+      s.parallaxPitch = 0;
 
-      // Smooth Auto-rotation drift
-      if (isAutoRotatingRef.current && s.autoRotate) {
+      // Smooth Auto-rotation drift (pause during and shortly after trackpad / touch navigation so it doesn't fight the user)
+      const isNavigating = (performance.now() - lastUserInteractionTime.current) < 2500;
+      if (isAutoRotatingRef.current && s.autoRotate && !isNavigating && !s.isDragging) {
         s.targetYaw += delta * 0.038 * driftSpeedRef.current * motionScale;
       }
 
@@ -2064,17 +2078,21 @@ export function AiMemoryGalaxySection({
       s.pitch = THREE.MathUtils.lerp(s.pitch, s.targetPitch, dampFactor);
 
       // Logarithmic/exponential radius interpolation for seamless infinite zoom across all scales
+      // Optimized trackpad-responsive damping to prevent lag and overshoot
+      const zoomDampFactor = 1.0 - Math.exp(-delta * 9.5);
       const prevRadius = s.radius;
       const currentLogRadius = Math.log(Math.max(0.01, s.radius));
       const targetLogRadius = Math.log(Math.max(0.01, s.targetRadius));
-      const newLogRadius = THREE.MathUtils.lerp(currentLogRadius, targetLogRadius, dampFactor);
+      const newLogRadius = THREE.MathUtils.lerp(currentLogRadius, targetLogRadius, zoomDampFactor);
       s.radius = Math.exp(newLogRadius);
       const radiusDelta = s.radius - prevRadius;
 
-      // Real-time spatial audio altitude crossfading & zoom whoosh
-      spaceSoundscape.updateAltitude(s.radius, radiusDelta);
+      // Real-time spatial audio altitude crossfading (deltaRadius=0 prevents jarring whooshes on trackpad zoom)
+      spaceSoundscape.updateAltitude(s.radius, 0);
 
-      s.lookAt.lerp(s.targetLookAt, dampFactor);
+      // Snappy and smooth camera lookAt tracking in sync with zoom
+      const lookAtDampFactor = 1.0 - Math.exp(-delta * 9.5);
+      s.lookAt.lerp(s.targetLookAt, lookAtDampFactor);
 
       const effectiveYaw = s.yaw + s.parallaxYaw;
       const effectivePitch = s.pitch + s.parallaxPitch;
@@ -2099,70 +2117,36 @@ export function AiMemoryGalaxySection({
       }
 
       // ── Update individual memory star celestial orbits, scales & coronas ──
-      nodeMeshes.forEach(({ starSprite, spikeSprite, proxyMesh, item, radius0, theta0, y0, jiggleOffset, jiggleVelocity, phaseSeed }) => {
-        // Celestial orbit in galactic plane
+      nodeMeshes.forEach(({ starSprite, coreSprite, spikeSprite, proxyMesh, item, radius0, theta0, y0, phaseSeed }) => {
+        // Celestial orbit in galactic plane - locked in exact spiral pattern
         const theta = theta0 + galaxyAngle;
         const curX = Math.cos(theta) * radius0;
         const curZ = Math.sin(theta) * radius0;
-        const curY = y0 + Math.sin(time * 0.35 + radius0 * 0.08) * 0.16;
+        const curY = y0;
 
-        // Damped harmonic oscillator physics for tactile star "jiggle"
-        const dt = Math.min(delta, 0.033);
-        const springK = 44.0;
-        const dampingC = 7.2;
-        const ax = -springK * jiggleOffset.x - dampingC * jiggleVelocity.x;
-        const ay = -springK * jiggleOffset.y - dampingC * jiggleVelocity.y;
-        const az = -springK * jiggleOffset.z - dampingC * jiggleVelocity.z;
-        jiggleVelocity.x += ax * dt;
-        jiggleVelocity.y += ay * dt;
-        jiggleVelocity.z += az * dt;
-        jiggleOffset.x += jiggleVelocity.x * dt;
-        jiggleOffset.y += jiggleVelocity.y * dt;
-        jiggleOffset.z += jiggleVelocity.z * dt;
-
-        // Zoom velocity micro-flutter wave
-        const zoomDelta = Math.abs(s.radius - s.targetRadius);
-        const isZooming = zoomDelta > 0.05;
-        const distToCamera = camera.position.distanceTo(starSprite.position);
-        const zoomFlutter =
-          isZooming && distToCamera < 120
-            ? Math.sin(time * 30.0 + phaseSeed) *
-              (0.08 * Math.min(1.0, zoomDelta * 0.12) * ((120 - distToCamera) / 120))
-            : 0;
-
-        // Deep-zoom celestial ambient float (revealed when entering cluster core r < 65 AU)
-        const deepFloatFactor = THREE.MathUtils.clamp((65.0 - s.radius) / 60.0, 0, 1);
-        const floatX = Math.sin(time * 1.1 + phaseSeed) * 0.14 * deepFloatFactor;
-        const floatY = Math.cos(time * 1.4 + phaseSeed * 1.2) * 0.16 * deepFloatFactor;
-        const floatZ = Math.sin(time * 1.0 + phaseSeed * 0.8) * 0.14 * deepFloatFactor;
-
-        const finalX = curX + jiggleOffset.x + floatX;
-        const finalY = curY + jiggleOffset.y + floatY + zoomFlutter;
-        const finalZ = curZ + jiggleOffset.z + floatZ;
-
-        starSprite.position.set(finalX, finalY, finalZ);
-        if (spikeSprite) spikeSprite.position.set(finalX, finalY, finalZ);
-        proxyMesh.position.set(finalX, finalY, finalZ);
+        starSprite.position.set(curX, curY, curZ);
+        coreSprite.position.set(curX, curY, curZ);
+        spikeSprite.position.set(curX, curY, curZ);
+        proxyMesh.position.set(curX, curY, curZ);
 
         const isSel = sel.selectedId === item.id;
         const isNeighbor = sel.neighborIds.has(item.id);
-        const isHovered = hoveredMemoryId === item.id;
         const isInCluster = sel.clusterId ? item.clusterId === sel.clusterId : true;
 
-        const baseScale = item.isAnchor ? 7.5 : 4.8;
+        const baseScale = item.isAnchor ? 6.4 : 4.4;
         let scaleMult = 1.0;
-        let targetOpacity = 0.92;
+        let targetOpacity = 0.90;
 
         if (sel.selectedId) {
           if (isSel) {
-            const selPulse = 1.0 + Math.sin(time * 3.2) * 0.08;
-            scaleMult = 1.75 * selPulse;
+            const selPulse = 1.0 + Math.sin(time * 2.8) * 0.08;
+            scaleMult = 1.65 * selPulse;
             targetOpacity = 1.0;
             starSprite.material.color.setHex(0xf26522);
           } else if (isNeighbor) {
-            const neighborPulse = 1.0 + Math.sin(time * 2.5 + item.anchor.x) * 0.06;
-            scaleMult = 1.38 * neighborPulse;
-            targetOpacity = 0.96;
+            const neighborPulse = 1.0 + Math.sin(time * 2.2 + item.anchor.x) * 0.06;
+            scaleMult = 1.30 * neighborPulse;
+            targetOpacity = 0.95;
             starSprite.material.color.setHex(0xffe2b8);
           } else {
             scaleMult = 0.72;
@@ -2170,14 +2154,10 @@ export function AiMemoryGalaxySection({
             const cluster = TOPIC_CLUSTERS.find((c) => c.id === item.clusterId);
             starSprite.material.color.copy(cluster ? cluster.colorThree : whiteColor);
           }
-        } else if (isHovered) {
-          scaleMult = 1.48;
-          targetOpacity = 1.0;
-          starSprite.material.color.setHex(0xf26522);
         } else if (sel.clusterId) {
           if (isInCluster) {
-            const clusterPulse = 1.0 + Math.sin(time * 2.4) * 0.06;
-            scaleMult = 1.32 * clusterPulse;
+            const clusterPulse = 1.0 + Math.sin(time * 2.2) * 0.06;
+            scaleMult = 1.25 * clusterPulse;
             targetOpacity = 1.0;
           } else {
             scaleMult = 0.68;
@@ -2186,39 +2166,46 @@ export function AiMemoryGalaxySection({
           const cluster = TOPIC_CLUSTERS.find((c) => c.id === item.clusterId);
           starSprite.material.color.copy(cluster ? cluster.colorThree : whiteColor);
         } else {
-          const twinkle = 1.0 + Math.sin(time * 2.0 + item.anchor.x * 0.4) * 0.10;
-          scaleMult = twinkle;
+          // Gentle, calm astronomical breathing (steady, not jiggling)
+          const calmBreath = 1.0 + Math.sin(time * 0.72 + phaseSeed) * 0.025;
+          scaleMult = calmBreath;
           const cluster = TOPIC_CLUSTERS.find((c) => c.id === item.clusterId);
           starSprite.material.color.copy(cluster ? cluster.colorThree : whiteColor);
         }
 
-        // Tactile scale bounce during active jiggle
-        const jiggleDist = jiggleOffset.length();
-        if (jiggleDist > 0.01) {
-          scaleMult *= 1.0 + Math.sin(time * 26.0 + phaseSeed) * Math.min(0.25, jiggleDist * 0.4);
-        }
-
         const distToStar = camera.position.distanceTo(starSprite.position);
-        // Distance-adaptive scale compensation so close stars stay crisp and don't overwhelm the camera
-        const closeDistFactor = THREE.MathUtils.clamp(distToStar / 18.0, 0.04, 1.0);
+        // Distance-adaptive scale compensation: maintains crisp luminous presence without ballooning when close
+        const closeDistFactor = THREE.MathUtils.clamp(distToStar / 32.0, 0.42, 1.05);
         const finalScale = baseScale * scaleMult * closeDistFactor;
         starSprite.scale.set(finalScale, finalScale, 1);
+
+        if (item.isAnchor) {
+          coreSprite.visible = true;
+          coreSprite.scale.set(finalScale * 0.30, finalScale * 0.30, 1);
+          spikeSprite.visible = true;
+          const spikeScale = finalScale * 1.85;
+          spikeSprite.scale.set(spikeScale, spikeScale, 1);
+          const spikeAlphaFactor = THREE.MathUtils.smoothstep(distToStar, 2.0, 22.0);
+          spikeSprite.material.opacity = THREE.MathUtils.lerp(
+            spikeSprite.material.opacity,
+            targetOpacity * 0.65 * spikeAlphaFactor,
+            0.1
+          );
+          coreSprite.material.opacity = THREE.MathUtils.lerp(
+            coreSprite.material.opacity,
+            targetOpacity * 0.70,
+            0.1
+          );
+        } else {
+          coreSprite.visible = false;
+          spikeSprite.visible = false;
+        }
+
         starSprite.material.opacity = THREE.MathUtils.lerp(
           starSprite.material.opacity,
           targetOpacity,
           0.1
         );
-
-        if (spikeSprite) {
-          const spikeScale = finalScale * 2.0;
-          spikeSprite.scale.set(spikeScale, spikeScale, 1);
-          const spikeAlphaFactor = THREE.MathUtils.smoothstep(distToStar, 4.0, 24.0);
-          spikeSprite.material.opacity = THREE.MathUtils.lerp(
-            spikeSprite.material.opacity,
-            targetOpacity * 0.85 * spikeAlphaFactor,
-            0.1
-          );
-        }
       });
 
       // ── Update Gravitational Filaments (Connecting Trails) ──
@@ -2260,9 +2247,7 @@ export function AiMemoryGalaxySection({
         const mat = line.material as THREE.LineBasicMaterial;
         const isConnected =
           sel.selectedId === edge.sourceId ||
-          sel.selectedId === edge.targetId ||
-          hoveredMemoryId === edge.sourceId ||
-          hoveredMemoryId === edge.targetId;
+          sel.selectedId === edge.targetId;
 
         if (!showFilamentsRef.current) {
           mat.opacity = THREE.MathUtils.lerp(mat.opacity, 0.0, 0.15);
@@ -2298,9 +2283,7 @@ export function AiMemoryGalaxySection({
         (e) =>
           showFilamentsRef.current &&
           (sel.selectedId === e.edge.sourceId ||
-            sel.selectedId === e.edge.targetId ||
-            hoveredMemoryId === e.edge.sourceId ||
-            hoveredMemoryId === e.edge.targetId)
+            sel.selectedId === e.edge.targetId)
       );
 
       const isInteractive = activeEdges.length > 0;
@@ -2389,27 +2372,30 @@ export function AiMemoryGalaxySection({
     // ───────────────────────────────────────────────────────────────────────────
     // 9. POINTER, TOUCH & KEYBOARD NAVIGATION
     // ───────────────────────────────────────────────────────────────────────────
+    let pointerDownStart = { x: 0, y: 0, time: 0 };
+
+    const dismissAllOverlays = () => {
+      pendingHoverNodeId = null;
+      particlesMaterial.uniforms.uHoveredPos.value.set(-1000, -1000, -1000);
+      setHoveredMemoryId(null);
+      setTooltipPos(null);
+      setSelectedMemoryId(null);
+      setSelectedClusterId(null);
+      setSelectedGalaxyId(null);
+      setIsSearchOpen(false);
+    };
+
     const onPointerDown = (e: PointerEvent) => {
       const s = cameraStateRef.current;
+      lastUserInteractionTime.current = performance.now();
       s.isDragging = true;
       s.isPanning = e.button === 2 || e.shiftKey || e.button === 1;
       s.dragStartX = e.clientX;
       s.dragStartY = e.clientY;
+      pointerDownStart = { x: e.clientX, y: e.clientY, time: performance.now() };
       s.yawVelocity = 0;
       s.pitchVelocity = 0;
       canvas.setPointerCapture(e.pointerId);
-
-      // Tactile Touch Impulse: Instant spring pop on star touch / pointer down
-      const rect = canvas.getBoundingClientRect();
-      mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-      mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
-      raycaster.setFromCamera(mouse, camera);
-      const touchIntersects = raycaster.intersectObjects(proxyMeshes);
-      if (touchIntersects.length > 0) {
-        const hit = touchIntersects[0].object as THREE.Mesh;
-        const memoryItem = hit.userData.memory as MemoryNode;
-        triggerStarJiggle(memoryItem.id, 1.4);
-      }
     };
 
     const onPointerMove = (e: PointerEvent) => {
@@ -2420,6 +2406,14 @@ export function AiMemoryGalaxySection({
       mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
 
       if (s.isDragging) {
+        // Hide preview tooltip when actively dragging
+        if (pendingHoverNodeId !== null) {
+          pendingHoverNodeId = null;
+          particlesMaterial.uniforms.uHoveredPos.value.set(-1000, -1000, -1000);
+          setHoveredMemoryId(null);
+          setTooltipPos(null);
+        }
+
         const dx = e.clientX - s.dragStartX;
         const dy = e.clientY - s.dragStartY;
         s.dragStartX = e.clientX;
@@ -2448,109 +2442,152 @@ export function AiMemoryGalaxySection({
 
       raycaster.setFromCamera(mouse, camera);
 
-      // Raycast memory star proxies
+      // Raycast memory star proxies for smooth preview hover
       const intersects = raycaster.intersectObjects(proxyMeshes);
 
       if (intersects.length > 0) {
         const hitProxy = intersects[0].object as THREE.Mesh;
         const memoryItem = hitProxy.userData.memory as MemoryNode;
-        const starSprite = hitProxy.userData.starSprite as THREE.Sprite;
 
         if (pendingHoverNodeId !== memoryItem.id) {
           pendingHoverNodeId = memoryItem.id;
-          const clusterIdx = TOPIC_CLUSTERS.findIndex((c) => c.id === memoryItem.clusterId);
-          spaceSoundscape.playNodePulse(clusterIdx !== -1 ? clusterIdx : 0, mouse.x, memoryItem.isAnchor);
-          // Tactile star jiggle on hover
-          triggerStarJiggle(memoryItem.id, 1.1);
+          setHoveredMemoryId(memoryItem.id);
         }
 
-        setHoveredMemoryId(memoryItem.id);
         setTooltipPos({ x: e.clientX, y: e.clientY });
-        particlesMaterial.uniforms.uHoveredPos.value.copy(starSprite.position);
       } else {
-        pendingHoverNodeId = null;
-        setHoveredMemoryId(null);
-        setTooltipPos(null);
-        particlesMaterial.uniforms.uHoveredPos.value.set(-1000, -1000, -1000);
+        if (pendingHoverNodeId !== null) {
+          pendingHoverNodeId = null;
+          setHoveredMemoryId(null);
+          setTooltipPos(null);
+        }
       }
     };
 
     const onPointerUp = (e: PointerEvent) => {
       const s = cameraStateRef.current;
+      const dist = Math.hypot(e.clientX - pointerDownStart.x, e.clientY - pointerDownStart.y);
+      const elapsed = performance.now() - pointerDownStart.time;
+
       s.isDragging = false;
       s.isPanning = false;
       try {
         canvas.releasePointerCapture(e.pointerId);
-      } catch {}
+      } catch { }
+
+      // Click Outside: If tapped/clicked without dragging, dismiss all open tabs/panels
+      if (dist < 6 && elapsed < 400) {
+        dismissAllOverlays();
+      }
+    };
+
+    const onPointerLeave = () => {
+      pendingHoverNodeId = null;
+      particlesMaterial.uniforms.uHoveredPos.value.set(-1000, -1000, -1000);
+      setHoveredMemoryId(null);
+      setTooltipPos(null);
     };
 
     const onWheel = (e: WheelEvent) => {
       e.preventDefault();
       const s = cameraStateRef.current;
+      lastUserInteractionTime.current = performance.now();
 
-      const delta = Math.abs(e.deltaY);
-      const zoomFactor = Math.pow(1.0016, Math.min(delta, 100));
-      if (e.deltaY > 0) {
-        // Infinite Zoom Out - completely unbounded
-        s.targetRadius = s.targetRadius * zoomFactor;
-        triggerZoomJiggle(0.6);
-      } else {
-        // Infinite Zoom In - down to micro 0.04 scale
-        s.targetRadius = Math.max(0.04, s.targetRadius / zoomFactor);
-        triggerZoomJiggle(1.1);
+      // Dismiss hover preview card during wheel zoom
+      if (pendingHoverNodeId !== null) {
+        pendingHoverNodeId = null;
+        particlesMaterial.uniforms.uHoveredPos.value.set(-1000, -1000, -1000);
+        setHoveredMemoryId(null);
+        setTooltipPos(null);
       }
-    };
 
-    const onClick = (e: MouseEvent) => {
-      const s = cameraStateRef.current;
+      // Determine wheel delta and normalize across browsers & trackpad modes
+      let dy = e.deltaY;
+      let dx = e.deltaX;
+      if (e.deltaMode === 1) {
+        // DOM_DELTA_LINE (traditional discrete mouse wheel)
+        dy *= 18;
+        dx *= 18;
+      } else if (e.deltaMode === 2) {
+        // DOM_DELTA_PAGE
+        dy *= 100;
+        dx *= 100;
+      }
+
+      // Detect Mac trackpad pinch gesture (macOS Safari & Chrome pass e.ctrlKey = true during pinch)
+      const isPinch = e.ctrlKey;
+      // High-precision calibrated trackpad sensitivity
+      const sensitivity = isPinch ? 0.012 : 0.0035;
+
+      // Clamp individual frame burst spikes to prevent sudden jumps
+      const clampedDelta = Math.max(-60, Math.min(60, dy));
+      const zoomStep = clampedDelta * sensitivity;
+
+      const oldTargetRadius = s.targetRadius;
+      const currentLog = Math.log(Math.max(0.01, s.radius));
+      let targetLog = Math.log(Math.max(0.01, s.targetRadius));
+
+      // Bounded lead window: prevents trackpad momentum from throwing targetRadius lightyears away.
+      // Guarantees immediate, organic stop when fingers lift and zero overshoot/lag
+      const maxLead = 0.90; // smooth 2.45x zoom lead buffer
+      if (targetLog - currentLog > maxLead) targetLog = currentLog + maxLead;
+      if (currentLog - targetLog > maxLead) targetLog = currentLog - maxLead;
+
+      targetLog += zoomStep;
+      s.targetRadius = Math.max(0.04, Math.exp(targetLog));
+
+      // ── Two-Finger Trackpad Horizontal Pan (e.g. Shift+scroll or horizontal swipe) ──
+      if (!isPinch && (e.shiftKey || Math.abs(dx) > Math.abs(dy) * 1.5) && Math.abs(dx) > 3) {
+        camera.getWorldDirection(panForward);
+        panRight.crossVectors(panForward, camera.up).normalize();
+        const panFactor = Math.max(0.006, s.radius * 0.0012);
+        s.targetLookAt.addScaledVector(panRight, dx * panFactor);
+        s.targetLookAt.x = THREE.MathUtils.clamp(s.targetLookAt.x, -160, 160);
+        s.targetLookAt.z = THREE.MathUtils.clamp(s.targetLookAt.z, -160, 160);
+      }
+
+      // ── Cursor-Directed Zoom Steering (Direct navigation smoothly to wherever cursor points) ──
       const rect = canvas.getBoundingClientRect();
-      mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-      mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+      const cursorNdcX = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+      const cursorNdcY = -((e.clientY - rect.top) / rect.height) * 2 + 1;
 
-      raycaster.setFromCamera(mouse, camera);
+      if (Math.abs(cursorNdcX) <= 1.05 && Math.abs(cursorNdcY) <= 1.05) {
+        cursorVec2.set(cursorNdcX, cursorNdcY);
+        raycaster.setFromCamera(cursorVec2, camera);
+        camera.getWorldDirection(panForward);
 
-      // 1. Raycast memory stars
-      const intersects = raycaster.intersectObjects(proxyMeshes);
+        const denom = raycaster.ray.direction.dot(panForward);
+        if (denom > 0.05) {
+          // Distance from camera to current focal plane passing through targetLookAt
+          const toLookAt = tempVec.copy(s.targetLookAt).sub(camera.position);
+          const focalDist = toLookAt.dot(panForward);
 
-      if (intersects.length > 0) {
-        const hitProxy = intersects[0].object as THREE.Mesh;
-        const memoryItem = hitProxy.userData.memory as MemoryNode;
-        triggerStarJiggle(memoryItem.id, 1.6);
-        handleSelectMemory(memoryItem.id);
-        return;
+          if (focalDist > 0.1) {
+            const rayDist = focalDist / denom;
+            const cursorWorld = raycaster.ray.origin.clone().addScaledVector(raycaster.ray.direction, rayDist);
+
+            // Check if cursor points at a specific memory star proxy for pinpoint navigation
+            const starIntersects = raycaster.intersectObjects(proxyMeshes);
+            const targetPoint = starIntersects.length > 0 ? starIntersects[0].object.position : cursorWorld;
+
+            if (zoomStep < 0) {
+              // Zooming IN: smoothly steer targetLookAt towards the cursor point
+              const zoomInRatio = Math.max(0.01, Math.min(0.5, (oldTargetRadius - s.targetRadius) / oldTargetRadius));
+              const steerFactor = Math.min(0.38, zoomInRatio * 1.6);
+              s.targetLookAt.lerp(targetPoint, steerFactor);
+
+              // Soft clamp within active cosmic bounds
+              s.targetLookAt.x = THREE.MathUtils.clamp(s.targetLookAt.x, -150, 150);
+              s.targetLookAt.y = THREE.MathUtils.clamp(s.targetLookAt.y, -35, 35);
+              s.targetLookAt.z = THREE.MathUtils.clamp(s.targetLookAt.z, -150, 150);
+            } else if (zoomStep > 0 && s.targetRadius > 35) {
+              // Zooming OUT: smoothly recenter towards the galactic core (0, 0, 0)
+              const recenterFactor = Math.min(0.20, (zoomStep / sensitivity) * 0.003 * Math.min(1.0, (s.targetRadius - 35) / 80));
+              s.targetLookAt.lerp(new THREE.Vector3(0, 0, 0), recenterFactor);
+            }
+          }
+        }
       }
-
-      // 2. Raycast companion galaxies
-      const galaxyIntersects = raycaster.intersectObjects(galaxyProxies);
-      if (galaxyIntersects.length > 0) {
-        const hit = galaxyIntersects[0].object as THREE.Mesh;
-        const galaxyId = hit.userData.galaxyId as string;
-        handleSelectGalaxy(galaxyId);
-        return;
-      }
-
-      // 3. Click near any star particle to glide camera directly to that particle!
-      raycaster.params.Points = { threshold: Math.max(0.8, s.radius * 0.02) };
-      const particleIntersects = raycaster.intersectObject(particlesMesh);
-      if (particleIntersects.length > 0 && particleIntersects[0].point) {
-        const pt = particleIntersects[0].point;
-        s.targetLookAt.copy(pt);
-        s.targetRadius = Math.max(5.0, s.radius * 0.38);
-        spaceSoundscape.playGlideTransition();
-        return;
-      }
-
-      if (selectedMemoryId || selectedClusterId || selectedGalaxyId) {
-        spaceSoundscape.playGlideTransition();
-      }
-      setSelectedMemoryId(null);
-      setSelectedClusterId(null);
-      setSelectedGalaxyId(null);
-      setIsTourActive(false);
-    };
-
-    const onDblClick = () => {
-      handleResetView();
     };
 
     const onKeyDown = (e: KeyboardEvent) => {
@@ -2580,19 +2617,23 @@ export function AiMemoryGalaxySection({
 
     const onTouchMove = (e: TouchEvent) => {
       if (e.touches.length === 2) {
+        lastUserInteractionTime.current = performance.now();
         const t1 = e.touches[0];
-
-
         const t2 = e.touches[1];
-
-
         const dist = Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY);
 
         const s = cameraStateRef.current;
         if (s.lastPinchDistance > 0) {
-          const delta = dist - s.lastPinchDistance;
-          const factor = Math.exp(-delta * 0.006);
-          s.targetRadius = Math.max(0.05, s.targetRadius * factor);
+          const deltaDist = dist - s.lastPinchDistance;
+          const currentLog = Math.log(Math.max(0.01, s.radius));
+          let targetLog = Math.log(Math.max(0.01, s.targetRadius));
+
+          const maxLead = 0.85;
+          if (targetLog - currentLog > maxLead) targetLog = currentLog + maxLead;
+          if (currentLog - targetLog > maxLead) targetLog = currentLog - maxLead;
+
+          targetLog -= deltaDist * 0.006;
+          s.targetRadius = Math.max(0.04, Math.exp(targetLog));
         }
         s.lastPinchDistance = dist;
       }
@@ -2619,14 +2660,31 @@ export function AiMemoryGalaxySection({
       e.preventDefault();
     };
 
+    const onGlobalPointerDown = (e: PointerEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (!target) return;
+
+      // Preserve active state if clicked inside an interactive panel, pill, or input
+      if (
+        target.closest("[data-panel='true']") ||
+        target.closest("button") ||
+        target.closest("input")
+      ) {
+        return;
+      }
+
+      // Clicked outside on backdrop: dismiss all open cards/tabs
+      dismissAllOverlays();
+    };
+
     canvas.addEventListener("pointerdown", onPointerDown);
     canvas.addEventListener("pointermove", onPointerMove);
     canvas.addEventListener("pointerup", onPointerUp);
+    canvas.addEventListener("pointerleave", onPointerLeave);
     canvas.addEventListener("wheel", onWheel, { passive: false });
-    canvas.addEventListener("click", onClick);
-    canvas.addEventListener("dblclick", onDblClick);
     canvas.addEventListener("contextmenu", onContextMenu);
     window.addEventListener("keydown", onKeyDown);
+    window.addEventListener("pointerdown", onGlobalPointerDown);
     canvas.addEventListener("touchmove", onTouchMove, { passive: true });
     canvas.addEventListener("touchend", onTouchEnd);
 
@@ -2636,11 +2694,11 @@ export function AiMemoryGalaxySection({
       canvas.removeEventListener("pointerdown", onPointerDown);
       canvas.removeEventListener("pointermove", onPointerMove);
       canvas.removeEventListener("pointerup", onPointerUp);
+      canvas.removeEventListener("pointerleave", onPointerLeave);
       canvas.removeEventListener("wheel", onWheel);
-      canvas.removeEventListener("click", onClick);
-      canvas.removeEventListener("dblclick", onDblClick);
       canvas.removeEventListener("contextmenu", onContextMenu);
       window.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener("pointerdown", onGlobalPointerDown);
       canvas.removeEventListener("touchmove", onTouchMove);
       canvas.removeEventListener("touchend", onTouchEnd);
 
@@ -2649,6 +2707,7 @@ export function AiMemoryGalaxySection({
       photonGeo.dispose();
       photonMat.dispose();
       starTexture.dispose();
+      nodeTexture.dispose();
       spikeTexture.dispose();
       coreBulgeTexture.dispose();
       proxyGeo.dispose();
@@ -2738,11 +2797,10 @@ export function AiMemoryGalaxySection({
         <div className="pointer-events-auto flex-1 min-w-0 flex items-center gap-1.5 overflow-x-auto scrollbar-none py-1">
           <button
             onClick={handleResetView}
-            className={`px-3 py-1.5 rounded-[4px] text-[11px] font-medium tracking-tight whitespace-nowrap transition-all backdrop-blur-xl border ${
-              !selectedMemoryId && !selectedClusterId && !selectedGalaxyId && !isTourActive
-                ? "bg-white text-black border-white shadow-[0_2px_12px_rgba(255,255,255,0.2)] font-semibold"
-                : "bg-[#0c0d12]/85 text-[#9ca3af] border-white/10 hover:border-white/25 hover:text-white hover:bg-white/[0.04]"
-            }`}
+            className={`px-3 py-1.5 rounded-[4px] text-[11px] font-medium tracking-tight whitespace-nowrap transition-all backdrop-blur-xl border ${!selectedMemoryId && !selectedClusterId && !selectedGalaxyId && !isTourActive
+              ? "bg-white text-black border-white shadow-[0_2px_12px_rgba(255,255,255,0.2)] font-semibold"
+              : "bg-[#0c0d12]/85 text-[#9ca3af] border-white/10 hover:border-white/25 hover:text-white hover:bg-white/[0.04]"
+              }`}
           >
             Full Galaxy View
           </button>
@@ -2750,11 +2808,10 @@ export function AiMemoryGalaxySection({
           {/* Andromeda Galaxy Shortcut */}
           <button
             onClick={() => handleSelectGalaxy("galaxy-andromeda")}
-            className={`px-3 py-1.5 rounded-[4px] text-[11px] font-medium tracking-tight whitespace-nowrap transition-all backdrop-blur-xl border ${
-              selectedGalaxyId === "galaxy-andromeda"
-                ? "bg-[#3b82f6] text-white border-[#3b82f6] shadow-[0_2px_12px_rgba(59,130,246,0.35)] font-semibold"
-                : "bg-[#0c0d12]/85 text-[#9ca3af] border-white/10 hover:border-white/25 hover:text-white hover:bg-white/[0.04]"
-            }`}
+            className={`px-3 py-1.5 rounded-[4px] text-[11px] font-medium tracking-tight whitespace-nowrap transition-all backdrop-blur-xl border ${selectedGalaxyId === "galaxy-andromeda"
+              ? "bg-[#3b82f6] text-white border-[#3b82f6] shadow-[0_2px_12px_rgba(59,130,246,0.35)] font-semibold"
+              : "bg-[#0c0d12]/85 text-[#9ca3af] border-white/10 hover:border-white/25 hover:text-white hover:bg-white/[0.04]"
+              }`}
           >
             Andromeda (M31)
           </button>
@@ -2762,11 +2819,10 @@ export function AiMemoryGalaxySection({
           {/* Triangulum Galaxy Shortcut */}
           <button
             onClick={() => handleSelectGalaxy("galaxy-triangulum")}
-            className={`px-3 py-1.5 rounded-[4px] text-[11px] font-medium tracking-tight whitespace-nowrap transition-all backdrop-blur-xl border ${
-              selectedGalaxyId === "galaxy-triangulum"
-                ? "bg-[#8b5cf6] text-white border-[#8b5cf6] shadow-[0_2px_12px_rgba(139,92,246,0.35)] font-semibold"
-                : "bg-[#0c0d12]/85 text-[#9ca3af] border-white/10 hover:border-white/25 hover:text-white hover:bg-white/[0.04]"
-            }`}
+            className={`px-3 py-1.5 rounded-[4px] text-[11px] font-medium tracking-tight whitespace-nowrap transition-all backdrop-blur-xl border ${selectedGalaxyId === "galaxy-triangulum"
+              ? "bg-[#8b5cf6] text-white border-[#8b5cf6] shadow-[0_2px_12px_rgba(139,92,246,0.35)] font-semibold"
+              : "bg-[#0c0d12]/85 text-[#9ca3af] border-white/10 hover:border-white/25 hover:text-white hover:bg-white/[0.04]"
+              }`}
           >
             Triangulum (M33)
           </button>
@@ -2780,11 +2836,10 @@ export function AiMemoryGalaxySection({
               <button
                 key={cluster.id}
                 onClick={() => handleSelectCluster(cluster.id)}
-                className={`px-3 py-1.5 rounded-[4px] text-[11px] font-medium tracking-tight whitespace-nowrap transition-all backdrop-blur-xl border ${
-                  isActive
-                    ? "bg-[#f26522] text-white border-[#f26522] shadow-[0_2px_12px_rgba(242,101,34,0.35)] font-semibold"
-                    : "bg-[#0c0d12]/85 text-[#9ca3af] border-white/10 hover:border-white/25 hover:text-white hover:bg-white/[0.04]"
-                }`}
+                className={`px-3 py-1.5 rounded-[4px] text-[11px] font-medium tracking-tight whitespace-nowrap transition-all backdrop-blur-xl border ${isActive
+                  ? "bg-[#f26522] text-white border-[#f26522] shadow-[0_2px_12px_rgba(242,101,34,0.35)] font-semibold"
+                  : "bg-[#0c0d12]/85 text-[#9ca3af] border-white/10 hover:border-white/25 hover:text-white hover:bg-white/[0.04]"
+                  }`}
               >
                 {cluster.name}
               </button>
@@ -2806,7 +2861,7 @@ export function AiMemoryGalaxySection({
                   setIsSearchOpen(true);
                 }}
                 onFocus={() => setIsSearchOpen(true)}
-                placeholder="Search galaxy stars... (/)"
+                placeholder="Search galaxy stars"
                 className="bg-transparent text-xs text-white placeholder-[#71717a] outline-none w-36 sm:w-44 md:w-52 font-normal"
               />
               {searchQuery && (
@@ -2908,7 +2963,8 @@ export function AiMemoryGalaxySection({
       {/* ── MINIMAL COMPACT PREVIEW TOOLTIP (ON HOVER) ── */}
       {hoveredNode && tooltipPos && !selectedMemoryId && (
         <div
-          className="fixed pointer-events-none z-50 px-4 py-3 rounded-[5px] bg-[#0a0b10]/95 backdrop-blur-2xl border border-white/[0.1] shadow-[0_16px_36px_rgba(0,0,0,0.85)] text-left max-w-[300px] -translate-x-1/2 -translate-y-full mb-3 animate-in fade-in zoom-in-95 duration-150 space-y-2"
+          data-panel="true"
+          className="fixed pointer-events-auto z-50 px-4 py-3 rounded-[5px] bg-[#0a0b10]/95 backdrop-blur-2xl border border-white/[0.1] shadow-[0_16px_36px_rgba(0,0,0,0.85)] text-left max-w-[300px] -translate-x-1/2 -translate-y-full mb-3 animate-in fade-in duration-100 space-y-2"
           style={{
             left: `${tooltipPos.x}px`,
             top: `${tooltipPos.y - 14}px`,
@@ -2920,11 +2976,24 @@ export function AiMemoryGalaxySection({
                 {hoveredNode.topic}
               </span>
             </div>
-            {hoveredNode.isAnchor && (
-              <span className="text-[9px] font-mono text-zinc-400">
-                ✦ Landmark
-              </span>
-            )}
+            <div className="flex items-center gap-1.5">
+              {hoveredNode.isAnchor && (
+                <span className="text-[9px] font-mono text-zinc-400">
+                  ✦ Landmark
+                </span>
+              )}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setHoveredMemoryId(null);
+                  setTooltipPos(null);
+                }}
+                className="text-zinc-500 hover:text-white p-0.5 rounded-[2px] transition-colors"
+                title="Dismiss"
+              >
+                <X className="size-3" />
+              </button>
+            </div>
           </div>
           <div className="text-[13px] font-medium text-white leading-snug">
             {hoveredNode.title}
@@ -2934,14 +3003,17 @@ export function AiMemoryGalaxySection({
           </p>
           <div className="text-[10px] text-zinc-500 flex items-center justify-between font-mono pt-0.5">
             <span className="truncate max-w-[160px]">{hoveredNode.source}</span>
-            <span className="text-[#f26522] font-medium">Inspect →</span>
+            <span className="text-[#f26522] font-medium">{hoveredNode.isAnchor ? "✦ Landmark" : "Synapse Star"}</span>
           </div>
         </div>
       )}
 
       {/* ── COMPREHENSIVE MEMORY DETAIL PANEL (ON STAR SELECTION) ── */}
       {selectedMemory && (
-        <div className="absolute bottom-16 right-4 z-40 max-w-[400px] w-full p-5 rounded-[6px] bg-[#0a0b10]/95 backdrop-blur-2xl border border-white/[0.08] shadow-[0_24px_60px_rgba(0,0,0,0.85),inset_0_1px_0_0_rgba(255,255,255,0.06)] animate-in fade-in slide-in-from-bottom-3 duration-200 space-y-3.5">
+        <div
+          data-panel="true"
+          className="absolute bottom-16 right-4 z-40 max-w-[400px] w-full p-5 rounded-[6px] bg-[#0a0b10]/95 backdrop-blur-2xl border border-white/[0.08] shadow-[0_24px_60px_rgba(0,0,0,0.85),inset_0_1px_0_0_rgba(255,255,255,0.06)] animate-in fade-in slide-in-from-bottom-3 duration-200 space-y-3.5"
+        >
           {/* Header */}
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2">
@@ -3018,7 +3090,10 @@ export function AiMemoryGalaxySection({
 
       {/* ── TOPIC CLUSTER DETAIL PANEL (ON CLUSTER SELECTION) ── */}
       {selectedCluster && !selectedMemoryId && (
-        <div className="absolute bottom-16 right-4 z-40 max-w-[400px] w-full p-5 rounded-[6px] bg-[#0a0b10]/95 backdrop-blur-2xl border border-white/[0.08] shadow-[0_24px_60px_rgba(0,0,0,0.85),inset_0_1px_0_0_rgba(255,255,255,0.06)] animate-in fade-in slide-in-from-bottom-3 duration-200 space-y-3.5">
+        <div
+          data-panel="true"
+          className="absolute bottom-16 right-4 z-40 max-w-[400px] w-full p-5 rounded-[6px] bg-[#0a0b10]/95 backdrop-blur-2xl border border-white/[0.08] shadow-[0_24px_60px_rgba(0,0,0,0.85),inset_0_1px_0_0_rgba(255,255,255,0.06)] animate-in fade-in slide-in-from-bottom-3 duration-200 space-y-3.5"
+        >
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Layers className="size-3.5 text-[#f26522]" />
@@ -3073,7 +3148,10 @@ export function AiMemoryGalaxySection({
 
       {/* ── COMPANION GALAXY DOSSIER PANEL (DISCOVERY COSMOS DEEP FIELD) ── */}
       {selectedGalaxy && !selectedMemoryId && (
-        <div className="absolute bottom-16 right-4 z-40 max-w-[420px] w-full p-5 rounded-[6px] bg-[#0a0b10]/95 backdrop-blur-2xl border border-white/[0.08] shadow-[0_24px_60px_rgba(0,0,0,0.85),inset_0_1px_0_0_rgba(255,255,255,0.06)] animate-in fade-in slide-in-from-bottom-3 duration-200 space-y-3.5">
+        <div
+          data-panel="true"
+          className="absolute bottom-16 right-4 z-40 max-w-[420px] w-full p-5 rounded-[6px] bg-[#0a0b10]/95 backdrop-blur-2xl border border-white/[0.08] shadow-[0_24px_60px_rgba(0,0,0,0.85),inset_0_1px_0_0_rgba(255,255,255,0.06)] animate-in fade-in slide-in-from-bottom-3 duration-200 space-y-3.5"
+        >
           {/* Header */}
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2">
@@ -3138,11 +3216,10 @@ export function AiMemoryGalaxySection({
                   <button
                     key={g.id}
                     onClick={() => handleSelectGalaxy(g.id)}
-                    className={`px-2.5 py-1.5 rounded-[3px] text-left text-[11px] whitespace-nowrap transition-all flex items-center gap-1.5 ${
-                      isCurrent
-                        ? "bg-[#38bdf8] text-black font-semibold shadow-[0_2px_10px_rgba(56,189,248,0.35)]"
-                        : "bg-white/[0.04] text-zinc-400 hover:text-white hover:bg-white/[0.08]"
-                    }`}
+                    className={`px-2.5 py-1.5 rounded-[3px] text-left text-[11px] whitespace-nowrap transition-all flex items-center gap-1.5 ${isCurrent
+                      ? "bg-[#38bdf8] text-black font-semibold shadow-[0_2px_10px_rgba(56,189,248,0.35)]"
+                      : "bg-white/[0.04] text-zinc-400 hover:text-white hover:bg-white/[0.08]"
+                      }`}
                   >
                     <span>{g.name.split(" (")[0]}</span>
                   </button>
@@ -3167,21 +3244,29 @@ export function AiMemoryGalaxySection({
             {selectedGalaxy
               ? selectedGalaxy.name.toUpperCase()
               : selectedCluster
-              ? selectedCluster.name
-              : selectedMemory
-              ? selectedMemory.topic
-              : "MILKY WAY CORE"}
+                ? selectedCluster.name
+                : selectedMemory
+                  ? selectedMemory.topic
+                  : "MILKY WAY CORE"}
           </span>
         </div>
         <span>•</span>
         <span className="text-[#a1a1aa]">{DEMO_MEMORIES.length} STARS ACTIVE</span>
         <span>•</span>
         <span className="text-[#71717a]">
-          <kbd className="px-1 py-0.5 rounded-[2px] bg-white/10 text-white font-mono">SPACE</kbd> DRIFT
+          <kbd className="px-1 py-0.5 rounded-[2px] bg-white/10 text-white font-mono">DRAG</kbd> ORBIT
+        </span>
+        <span>•</span>
+        <span className="text-[#71717a]">
+          <kbd className="px-1 py-0.5 rounded-[2px] bg-white/10 text-white font-mono">SCROLL</kbd> ZOOM
         </span>
         <span>•</span>
         <span className="text-[#71717a]">
           <kbd className="px-1 py-0.5 rounded-[2px] bg-white/10 text-white font-mono">RIGHT-DRAG</kbd> PAN
+        </span>
+        <span>•</span>
+        <span className="text-[#71717a]">
+          <kbd className="px-1 py-0.5 rounded-[2px] bg-white/10 text-white font-mono">SPACE</kbd> DRIFT
         </span>
       </div>
 
@@ -3228,11 +3313,10 @@ export function AiMemoryGalaxySection({
         {/* Auto-Rotation Drift Toggle */}
         <button
           onClick={handleToggleAutoRotate}
-          className={`p-1.5 rounded-[3px] transition-colors ${
-            isAutoRotating
-              ? "text-[#f26522] bg-[#f26522]/15"
-              : "opacity-40 hover:opacity-100 hover:bg-white/10"
-          }`}
+          className={`p-1.5 rounded-[3px] transition-colors ${isAutoRotating
+            ? "text-[#f26522] bg-[#f26522]/15"
+            : "opacity-40 hover:opacity-100 hover:bg-white/10"
+            }`}
           title="Toggle Galactic Drift (Space)"
         >
           {isAutoRotating ? <Compass className="size-3.5" /> : <Play className="size-3.5" />}
@@ -3250,11 +3334,10 @@ export function AiMemoryGalaxySection({
         {/* Filaments Toggle */}
         <button
           onClick={handleToggleFilaments}
-          className={`p-1.5 rounded-[3px] transition-colors ${
-            showFilaments
-              ? "text-[#f26522] bg-[#f26522]/15"
-              : "opacity-40 hover:opacity-100 hover:bg-white/10"
-          }`}
+          className={`p-1.5 rounded-[3px] transition-colors ${showFilaments
+            ? "text-[#f26522] bg-[#f26522]/15"
+            : "opacity-40 hover:opacity-100 hover:bg-white/10"
+            }`}
           title="Toggle Gravitational Filaments"
         >
           <Layers className="size-3.5" />
@@ -3263,11 +3346,10 @@ export function AiMemoryGalaxySection({
         {/* Guided Tour Toggle */}
         <button
           onClick={isTourActive ? handleResetView : handleStartTour}
-          className={`px-2.5 py-1 rounded-[3px] flex items-center gap-1 text-[10px] font-mono uppercase tracking-wider transition-all ${
-            isTourActive
-              ? "bg-[#f26522] text-white font-semibold shadow-[0_2px_10px_rgba(242,101,34,0.35)]"
-              : "text-[#a1a1aa] hover:text-white hover:bg-white/10"
-          }`}
+          className={`px-2.5 py-1 rounded-[3px] flex items-center gap-1 text-[10px] font-mono uppercase tracking-wider transition-all ${isTourActive
+            ? "bg-[#f26522] text-white font-semibold shadow-[0_2px_10px_rgba(242,101,34,0.35)]"
+            : "text-[#a1a1aa] hover:text-white hover:bg-white/10"
+            }`}
           title="Start Guided Landmark Tour"
         >
           <Route className="size-3" />
